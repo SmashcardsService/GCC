@@ -64,4 +64,6 @@ const trivia = {
   "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
   
   "Who made it onto an invitational stage quiz while still in junior quizzing":"Elena Der",
+  
+  "Who allegedly hasn't showered in 3 months": "Xander Brown",
 };
