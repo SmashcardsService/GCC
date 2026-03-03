@@ -57,9 +57,10 @@ const trivia = {
   
   'Who invented "the Thomas Game"': "Thomas Gossell",
   
-  "Who is a fan of yogurt": "Jeremiah Price";
+  "Who is a fan of yogurt": "Jeremiah Price",
   
   "Who is the only known person to be the top nationals all star during their rookie year?":"Judah Price",
   
   "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
 };
+
