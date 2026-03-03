@@ -3,9 +3,9 @@ const trivia = {
 
   "Which quizzer is technically related to their former coach Corbin Phillips and SBQ Director Angie Phillips?": "Gentry Bear",
 
-  "Who replied 'Yes XP' when asked for trivia?": "Megan Sortore",
+  'Which quizzer is related to "the GOAT"': "Megan Sortore",
 
-  "Who jokingly called themselves the worst quizzer on Dead BC?": "Kaylin Kastman",
+  "Who called themselves the worst quizzer on Dead BC?": "Kaylin Kastman",
 
   "Who co-invented the 'Funky Pickle' with Eden Shepp?": "Annika Kampe",
 
@@ -17,15 +17,15 @@ const trivia = {
 
   "Who got Orlyn to sign their shirt at Nationals?": "Nathaniel Der",
 
-  "Who is known as 'The GOAT'?": "Orlyn Marks",
+  "Who is commonly known for mispronouncing names?": "Orlyn Marks",
 
-  "Which quizzer was submitted as a trivia answer by Toby Garrett?": "Ryder Iantorno",
+  "Which quizzer was randomly submitted as a trivia answer by Toby Garrett?": "Ryder Iantorno",
 
   "Who has made the most championships at Nationals without winning one?": "Peter Gossell",
 
   "Who rides dirt bikes?": "Addie Jansen",
 
-  "Which quizzer submitted their own name as trivia?": "Charis Button",
+  "Which quizzer mistakenly submitted their own name as trivia?": "Charis Button",
 
   "Who hates mismatched socks in every situation except quizzing — where they insist on wearing them?": "Micah DeCaro",
 
@@ -41,14 +41,25 @@ const trivia = {
 
   "Who once had a book signing for her book at a quiz event?": "Jenny Gossell",
 
-  "Which quizzer simply submitted their own first name as trivia?": "Liam Mullins",
+  "Who is currently the top purchaser of Smashcards": "Liam Mullins",
 
   'Which quizzer randomly answered "Hunter" as their trivia question?': "Lorenzo Mullins",
 
   "Who said they don't know anyone from MWTFC who does this?": "Oliver Lohrenz",
   
-  
   "Who said they eat knees": "Stanley Chingus ",
   
   "Who had the iconic “in my opinion” challenge in their rookie year that their ministry still makes fun of them for?":"Ryder Iantorno",
+  
+  'Who is questioned to really exist on GCC': "Jake Miles",
+  
+  'Who bought nationals shirts from 5 teams other than their own in 2025?': "Josiah Price",
+  
+  'Who invented "the Thomas Game"': "Thomas Gossell",
+  
+  "Who is a fan of yogurt": "Jeremiah Price";
+  
+  "Who is the only known person to be the top nationals all star during their rookie year?":"Judah Price",
+  
+  "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
 };
