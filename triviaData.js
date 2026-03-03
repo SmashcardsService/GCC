@@ -47,7 +47,7 @@ const trivia = {
 
   "Who said they don't know anyone from MWTFC who does this?": "Oliver Lohrenz",
   
-  "Who said they eat knees": "Stanley Chingus ",
+  "Who said they eat knees": "Stanley Chingus",
   
   "Who had the iconic “in my opinion” challenge in their rookie year that their ministry still makes fun of them for?":"Ryder Iantorno",
   
@@ -63,4 +63,5 @@ const trivia = {
   
   "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
 };
+
 
