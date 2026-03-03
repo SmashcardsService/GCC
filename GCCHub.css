@@ -21,7 +21,13 @@ body.homePage::before {
     background: crimson; /* lighter overlay */
     z-index: -1;
 }
-
+button {
+	
+    width: 150px;   /* sets the width */
+    height: 50px;   /* sets the height */
+	color: gold;
+   background-color: black;
+}
 /* Header Styles */
 header {
     text-align: center;
@@ -93,6 +99,8 @@ main a {
     color: gold; /* tomato red for links */
     text-decoration: underline;
 }
+
+
 
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
