@@ -67,75 +67,81 @@
 	<script src="triviaData.js"></script>
 	<script>
 	let question = document.getElementById("question");
-	let answer1 = document.getElementById("answer1");
-	let answer2 = document.getElementById("answer2");
-	let answer3 = document.getElementById("answer3");
-	let answer4 = document.getElementById("answer4");
-	let output = document.getElementById("output");
-	let streakDisplay = document.querySelector("#streak strong");
+		let answer1 = document.getElementById("answer1");
+		let answer2 = document.getElementById("answer2");
+		let answer3 = document.getElementById("answer3");
+		let answer4 = document.getElementById("answer4");
+		let output = document.getElementById("output");
+		let streakDisplay = document.querySelector("#streak strong");
 
-	let streak = 0;
+		let streak = 0;
 
-	// Function to load a random question
-	function loadQuestion() {
-		// Pick a random question
-		let keys = Object.keys(trivia);
-		let randomKey = keys[Math.floor(Math.random() * keys.length)];
-		let correctAnswer = trivia[randomKey];
+		
+		let remainingQuestions = Object.keys(trivia);
 
-		// Pick 3 random wrong answers
-		let allAnswers = Object.values(trivia).filter(a => a !== correctAnswer);
-		allAnswers.sort(() => 0.5 - Math.random());
-		let wrongAnswers = allAnswers.slice(0, 3);
+		function loadQuestion() {
+			if (remainingQuestions.length === 0) {
+				remainingQuestions = Object.keys(trivia);
+			}
 
-		// Combine and shuffle answers
-		let answersArray = [correctAnswer, ...wrongAnswers];
-		answersArray.sort(() => 0.5 - Math.random());
+			let randomIndex = Math.floor(Math.random() * remainingQuestions.length);
+			let randomKey = remainingQuestions[randomIndex];
+			remainingQuestions.splice(randomIndex, 1); 
+			let correctAnswer = trivia[randomKey];
 
-		// Display question
-		question.innerHTML = `<h2>${randomKey}</h2>`;
-		output.innerHTML = "";
+		
+			let allAnswers = Object.values(trivia).filter(a => a !== correctAnswer);
+			allAnswers.sort(() => 0.5 - Math.random());
+			let wrongAnswers = allAnswers.slice(0, 3);
 
-		// Assign answers to buttons
-		[answer1, answer2, answer3, answer4].forEach((btn, idx) => {
-			btn.innerText = answersArray[idx];
-			btn.disabled = false; // enable buttons
-			btn.style.backgroundColor = ""; // reset button color
-			btn.onclick = () => checkAnswer(btn, correctAnswer); // set click handler
-		});
-	}
+		
+			let answersArray = [correctAnswer, ...wrongAnswers];
+			answersArray.sort(() => 0.5 - Math.random());
 
-	// Function to check the answer
-	function checkAnswer(button, correctAnswer) {
-		if (button.innerText === correctAnswer) {
-			output.innerHTML = `<h2>Correct!</h2>`;
-			streak++;
-			button.style.backgroundColor = "#4CAF50"; // green
-		} else {
-			output.innerHTML = `<h2>Incorrect! The correct answer was: ${correctAnswer}</h2>`;
-			streak = 0;
-			button.style.backgroundColor = "#F44336"; // red
+		
+			question.innerHTML = `<h2>${randomKey}</h2>`;
+			output.innerHTML = "";
+
+		
+			[answer1, answer2, answer3, answer4].forEach((btn, idx) => {
+				btn.innerText = answersArray[idx];
+				btn.disabled = false; 
+				btn.style.backgroundColor = ""; 
+				btn.onclick = () => checkAnswer(btn, correctAnswer); 
+			});
 		}
 
-		// Update streak display
-		streakDisplay.innerText = streak;
+	
+		function checkAnswer(button, correctAnswer) {
+			if (button.innerText === correctAnswer) {
+				output.innerHTML = `<h2>Correct!</h2>`;
+				streak++;
+				button.style.backgroundColor = "#4CAF50"; // green
+			} else {
+				output.innerHTML = `<h2>Incorrect! The correct answer was: ${correctAnswer}</h2>`;
+				streak = 0;
+				button.style.backgroundColor = "#F44336"; // red
+			}
 
-		// Disable all buttons
-		[answer1, answer2, answer3, answer4].forEach(btn => btn.disabled = true);
+			
+			streakDisplay.innerText = streak;
 
-		// Add Next Question button
-		let nextBtn = document.createElement("button");
-		nextBtn.innerText = "Next Question";
-		nextBtn.style.marginTop = "15px";
-		nextBtn.onclick = () => {
-			nextBtn.remove(); // remove the button
-			loadQuestion();   // load new question
-		};
-		output.appendChild(nextBtn);
-	}
+		
+			[answer1, answer2, answer3, answer4].forEach(btn => btn.disabled = true);
 
-	// Load first question
-	loadQuestion();
+			
+			let nextBtn = document.createElement("button");
+			nextBtn.innerText = "Next Question";
+			nextBtn.style.marginTop = "15px";
+			nextBtn.onclick = () => {
+				nextBtn.remove(); 
+				loadQuestion();   
+			};
+			output.appendChild(nextBtn);
+		}
+
+		
+		loadQuestion();
 	</script>
 </body>
 </html>
