@@ -5,7 +5,7 @@ const trivia = {
 
   'Which quizzer is related to "the GOAT"': "Megan Sortore",
 
-  "Who called themselves the worst quizzer on Dead BC?": "Kaylin Kastman",
+  "Who got Quiz Master Mrs. Quandt to pull out her rule book on them?": "Kaylin Kastman",
 
   "Who co-invented the 'Funky Pickle' with Eden Shepp?": "Annika Kampe",
 
@@ -62,6 +62,6 @@ const trivia = {
   "Who is the only known person to be the top nationals all star during their rookie year?":"Judah Price",
   
   "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
+  
+  "Who made it onto an invitational stage quiz while still in junior quizzing":"Elena Der",
 };
-
-
