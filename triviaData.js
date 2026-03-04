@@ -25,7 +25,7 @@ const trivia = {
 
   "Who rides dirt bikes?": "Addie Jansen",
 
-  "Which quizzer mistakenly submitted their own name as trivia?": "Charis Button",
+  "Which quizzer went their first 5 years without ever erroring out": "Charis Button",
 
   "Who hates mismatched socks in every situation except quizzing — where they insist on wearing them?": "Micah DeCaro",
 
@@ -63,7 +63,19 @@ const trivia = {
   
   "Who has quizzed for at least 5 years but never won a quiz on the last question?":"Nathan Fees",
   
-  "Who made it onto an invitational stage quiz while still in junior quizzing":"Elena Der",
+  "Who made it onto an invitational stage quiz while still in junior quizzing?":"Elena Der",
   
-  "Who allegedly hasn't showered in 3 months": "Xander Brown",
+  "Who allegedly hasn't showered in 3 months?": "Xander Brown",
+  
+  "Who wore a wig to multiple quizzing events?": "Kian Graff",
+  
+  "Which quizzer bombed Hunter Herr’s minecraft server?": "Caleb Der",
+  
+  "Who is currently an extra in the show Yellowstone?": "Grant Fryburger",
+  
+  "Which quizzer has a goal of playing college baseball once he graduates?": "Ryder Iantorno",
+  
+  "Who was taken on vacation for three weeks in order to be convinced to do quizzing?": "Miles Ritchie",
+  
+  
 };
