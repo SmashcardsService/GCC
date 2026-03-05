@@ -470,7 +470,8 @@ function renderPanel(ti) {
     </tr></thead><tbody>`;
 
   team.quizzers.forEach((qz, qi) => {
-    const rowClass = qz.errorOut ? 'errout' : qz.quizOut ? 'quizout' : '';
+	const rowClass = '';
+	const statusClass = qz.errorOut ? 'errout' : qz.quizOut ? 'quizout' : '';	
     const canScore = !qz.quizOut && !qz.perfect && !qz.errorOut;
     const canErr   = !qz.errorOut;
 
@@ -496,7 +497,7 @@ function renderPanel(ti) {
       errShareVal = null;
     }
 
-    html += `<tr class="${rowClass}">
+    html += `<tr>
       <td><div class="qname-cell">
         ${qz.cap?'<span class="captain-star">★</span>':''}
         <span class="qname-text" title="${esc(qz.name)}">${esc(qz.name)}</span>
