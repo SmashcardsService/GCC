@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizScore — Competition Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="GCCHub.css">
+</head>
+<body>
+<div class="app">
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="trivia.html">GCC Trivia</a>
+		<a href="scoreKeeper.html">Score Keeper</a>
+        <a href="https://smashcardsservice.github.io/Bible_Quizzing/" target="_blank">Quizzing Game</a>
+      
+		
+    </nav>
+<!-- ══ SETUP ══ -->
+<div id="setup-screen">
+  <div class="setup-header">
+    <h1>Score Keeper</h1>
+    <p>Bible Quizzing Scorekeeping</p>
+  </div>
+  <div class="rules-box">
+    <div class="rule-item"><strong>Correct:</strong> +20 each · 5th = Quiz Out<br>5 correct, no errors/fouls/TF = Perfect (110)</div>
+    <div class="rule-item"><strong>Team Error Pool:</strong> All member errors + foul pairs pool together<br>1–3 free · 4–6 = −10 each · 7+ = −20 each</div>
+    <div class="rule-item"><strong>Fouls (collective):</strong> Team foul pairs → team error pool<br>Individual error-out at 3 personal eff. errors</div>
+    <div class="rule-item"><strong>Tech Fouls:</strong> −10 pts each · <strong>Captain:</strong> one per team</div>
+    <div class="rule-item"><strong>Team Bonus:</strong> +20 when 5 different quizzers answer correctly<br>+20 more at 6 · +20 more at 7</div>
+    <div class="rule-item"><strong>Custom Score:</strong> Team pts ÷ quizzers who answered<br>Error penalty ÷ quizzers who erred (analysis mode)</div>
+  </div>
+  <div class="teams-grid">
+    <div class="team-card team-a"><h2>Team A</h2><div id="setup-a"></div></div>
+    <div class="team-card team-b"><h2>Team B</h2><div id="setup-b"></div></div>
+    <div class="team-card team-c"><h2>Team C</h2><div id="setup-c"></div></div>
+  </div>
+  <button class="start-btn" onclick="startGame()">START QUIZ</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game-screen">
+  <div class="game-topbar">
+    <div class="game-title">Scorekeeping</div>
+    <div class="scoreboard-totals" id="topbar-scores"></div>
+    <div class="topbar-right">
+      <span class="q-label-sm">Q</span>
+      <button class="q-btn" onclick="changeQ(-1)">−</button>
+      <span class="q-num-disp" id="q-num">1</span>
+      <button class="q-btn" onclick="changeQ(1)">+</button>
+      <button class="btn-sm" id="btn-custom" onclick="toggleCustomScore()">Score distribution</button>
+      <button class="btn-sm" onclick="toggleChart()">Graph</button>
+      <button class="btn-sm" onclick="toggleLog()">Log</button>
+      <button class="btn-sm danger" onclick="resetGame()">Reset</button>
+    </div>
+  </div>
+  <div class="teams-container" id="teams-container"></div>
+  <div class="chart-section" id="chart-section" style="display:none">
+    <div class="chart-header">
+      <div class="chart-title">Scoring Timeline</div>
+      <div class="chart-legend" id="chart-legend"></div>
+    </div>
+    <canvas id="scoreChart"></canvas>
+  </div>
+  <div class="log-section" id="log-section" style="display:none">
+    <div class="log-title">Event Log</div>
+    <div class="log-list" id="log-list"></div>
+  </div>
+</div>
+
+<div class="undo-bar" id="undo-bar">
+  <span id="undo-msg">Action recorded</span>
+  <button class="undo-action-btn" onclick="undoLast()">UNDO</button>
+</div>
+<div class="toast-container" id="toast-container"></div>
+
+</div><!-- .app -->
+<script>
+// ══════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════
+const TEAM_KEYS   = ['a','b','c'];
+const TEAM_LABELS = ['A','B','C'];
+
+const CHART_COLORS = [
+  '#00e5ff','#4df3ff','#00b4cc','#00d4ee','#67eaff','#009eb8','#33d8f0',
+  '#ff4d6d','#ff8099','#e0003c','#ff7090','#ffaabb','#cc0033','#ff6680',
+  '#c084fc','#d9a8ff','#a050e0','#b870f5','#e0b8ff','#8030cc','#cc99ff',
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let state = { question:1, teams:[], events:[], undoStack:[] };
+let undoTimer    = null;
+let chartVisible = false;
+let logVisible   = false;
+let customScore  = false;
+
+// ══════════════════════════════════════════════════════
+//  SETUP BUILD
+// ══════════════════════════════════════════════════════
+function buildSetup() {
+  TEAM_KEYS.forEach((tk, ti) => {
+    const c = document.getElementById(`setup-${tk}`);
+    c.innerHTML = `
+      <div class="field-group"><label>Team Name</label>
+        <input type="text" id="tn-${tk}" placeholder="e.g. Team ${TEAM_LABELS[ti]}"></div>
+      <div class="field-group"><label>Coach Name</label>
+        <input type="text" id="tc-${tk}" placeholder="Coach name"></div>
+      <div class="quizzers-section">
+        <h3>Quizzers — click ★ CAP for captain</h3>
+        <div id="qrows-${tk}"></div>
+      </div>`;
+    const qrows = document.getElementById(`qrows-${tk}`);
+    for (let i = 1; i <= 7; i++) {
+      const row = document.createElement('div');
+      row.className = 'quizzer-row';
+      row.innerHTML = `
+        <div class="quizzer-num">${i}</div>
+        <input type="text" id="qn-${tk}${i}" placeholder="Quizzer ${i}">
+        <label class="cap-toggle">
+          <input type="radio" name="cap-${tk}" id="qc-${tk}${i}">
+          <span class="cap-badge">★ CAP</span>
+        </label>`;
+      qrows.appendChild(row);
+    }
+  });
+}
+buildSetup();
+
+// ══════════════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════════════
+function startGame() {
+  state.teams = TEAM_KEYS.map((tk, ti) => {
+    const name  = document.getElementById(`tn-${tk}`).value.trim() || `Team ${TEAM_LABELS[ti]}`;
+    const coach = document.getElementById(`tc-${tk}`).value.trim() || 'Coach';
+    const quizzers = [];
+    for (let i = 1; i <= 7; i++) {
+      quizzers.push({
+        name:      document.getElementById(`qn-${tk}${i}`).value.trim() || `Quizzer ${i}`,
+        cap:       document.getElementById(`qc-${tk}${i}`).checked,
+        stats:     { c:0, e:0, f:0, tf:0 },
+        // Personal error tracking
+        effErrors: 0,   // personal real errors + personal foul-derived errors
+        foulDebt:  0,   // personal foul-pair conversions already counted
+        quizOut:   false,
+        errorOut:  false,
+        perfect:   false,
+      });
+    }
+    return { name, coach, quizzers,
+      // Team-level tracking
+      teamErrPool: 0,     // total team errors (all real errors + all foul-pair conversions)
+      teamFoulDebt: 0,    // team-level foul pairs already credited to pool
+      bonusLevel: 0,      // how many bonus thresholds earned (0,1,2,3)
+    };
+  });
+  state.question=1; state.events=[]; state.undoStack=[];
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('game-screen').style.display='block';
+  renderGame();
+}
+
+// ══════════════════════════════════════════════════════
+//  SCORING ENGINE
+// ══════════════════════════════════════════════════════
+
+/**
+ * Individual quizzer raw correct points.
+ * Perfect = 110 flat.
+ * Otherwise = c*20. Error/foul penalties are handled at TEAM level.
+ */
+function quizzerCorrectPts(qz) {
+  if (qz.perfect) return 110;
+  return qz.stats.c * 20;
+}
+
+/**
+ * Team error penalty from the shared pool (tiers: 1-3 free, 4-6 = -10, 7+ = -20).
+ */
+function teamErrPenalty(pool) {
+  let pen = 0;
+  for (let i = 1; i <= pool; i++) {
+    if      (i <= 3) pen += 0;
+    else if (i <= 6) pen += 10;
+    else             pen += 20;
+  }
+  return pen; // positive number, will be subtracted
+}
+
+/**
+ * Team total score = sum of quizzer correct pts + bonus - error pool penalty - tech foul penalties.
+ */
+function getTeamScore(ti) {
+  const team = state.teams[ti];
+  const correctSum = team.quizzers.reduce((s,qz) => s + quizzerCorrectPts(qz), 0);
+  const tfPenalty  = team.quizzers.reduce((s,qz) => s + qz.stats.tf * 10, 0);
+  const errPen     = teamErrPenalty(team.teamErrPool);
+  const bonus      = team.bonusLevel * 20;
+  return correctSum + bonus - errPen - tfPenalty;
+}
+
+/**
+ * Custom breakdown per quizzer.
+ * Team total score is UNCHANGED. Custom mode redistributes credit/blame.
+ *
+ * Points pool = correctSum + bonus  (split by each quizzer's correct-answer weight)
+ * Error pool  = teamErrPenalty      (split by each quizzer's effErrors weight)
+ * Tech fouls  = per-quizzer as-is   (already personal)
+ *
+ * Perfect scorer counts as 5 corrects for weighting purposes.
+ * Quizzers with 0 corrects get 0 points share.
+ * Quizzers with 0 errors  get 0 error penalty share.
+ *
+ * Sum of all net values === getTeamScore(ti).
+ */
+function getCustomBreakdown(ti) {
+  const team = state.teams[ti];
+  const correctSum = team.quizzers.reduce((s,qz) => s + quizzerCorrectPts(qz), 0);
+  const errPen     = teamErrPenalty(team.teamErrPool);
+  const bonus      = team.bonusLevel * 20;
+  const pointsPool = correctSum + bonus;
+
+  // Weight for points: raw correct pts (perfect = 110, others = c*20)
+  const cWeights = team.quizzers.map(qz => quizzerCorrectPts(qz));
+  const totalCW  = cWeights.reduce((s,w) => s+w, 0) || 1;
+
+  // Weight for errors: personal effErrors
+  const eWeights = team.quizzers.map(qz => qz.effErrors);
+  const totalEW  = eWeights.reduce((s,w) => s+w, 0) || 1;
+
+  return team.quizzers.map((qz, qi) => {
+    const ptsShare = (cWeights[qi] / totalCW) * pointsPool;
+    const errShare = (eWeights[qi] / totalEW) * errPen;
+    const tfPen    = qz.stats.tf * 10;
+    const net      = ptsShare - errShare - tfPen;
+    return {
+      ptsShare: Math.round(ptsShare * 10) / 10,
+      errShare: Math.round(errShare * 10) / 10,
+      tfPen,
+      net:      Math.round(net      * 10) / 10,
+    };
+  });
+}
+
+// Team total is always the real score — custom mode never changes it
+function getTeamCustomScore(ti) {
+  return getTeamScore(ti);
+}
+
+// Count how many distinct quizzers on a team have at least 1 correct answer
+function distinctScorers(team) {
+  return team.quizzers.filter(qz => qz.stats.c > 0).length;
+}
+
+// ══════════════════════════════════════════════════════
+//  RECORD EVENT
+// ══════════════════════════════════════════════════════
+function recordEvent(ti, qi, type) {
+  const team = state.teams[ti];
+  const qz   = team.quizzers[qi];
+
+  if (type==='c' && (qz.quizOut||qz.perfect||qz.errorOut)) return;
+  if (type==='e' && qz.errorOut) return;
+
+  // Snapshot for undo
+  state.undoStack.push({ teams: JSON.parse(JSON.stringify(state.teams)), question: state.question });
+
+  qz.stats[type]++;
+
+  // ── Foul logic ──────────────────────────────────────
+  if (type === 'f') {
+    // Personal foul → personal error-out tracking
+    const personalExpected = Math.floor(qz.stats.f / 2);
+    if (personalExpected > qz.foulDebt) {
+      const added = personalExpected - qz.foulDebt;
+      qz.effErrors += added;
+      qz.foulDebt   = personalExpected;
+    }
+    // Team-wide foul pool: sum all foul-pairs across entire team
+    const totalTeamFouls = team.quizzers.reduce((s,q) => s+q.stats.f, 0);
+    const teamFoulPairs  = Math.floor(totalTeamFouls / 2);
+    if (teamFoulPairs > team.teamFoulDebt) {
+      const added = teamFoulPairs - team.teamFoulDebt;
+      team.teamErrPool  += added;
+      team.teamFoulDebt  = teamFoulPairs;
+    }
+  }
+
+  // ── Error logic ─────────────────────────────────────
+  if (type === 'e') {
+    qz.effErrors++;
+    team.teamErrPool++;
+  }
+
+  // ── Individual error-out ────────────────────────────
+  if (!qz.errorOut && qz.effErrors >= 3) {
+    qz.errorOut = true;
+    showToast(`${qz.name} — ERRORED OUT`, 'errout');
+  }
+
+  // ── Quiz-out / perfect ──────────────────────────────
+  if (!qz.quizOut && !qz.perfect && qz.stats.c >= 5) {
+    if (qz.stats.e === 0 && qz.stats.f === 0 && qz.stats.tf === 0) {
+      qz.perfect = true; qz.quizOut = true;
+      showToast(`⭐ ${qz.name} — PERFECT! 110 pts`, 'perfect');
+    } else {
+      qz.quizOut = true;
+      showToast(`${qz.name} — QUIZZED OUT`, 'quizout');
+    }
+  }
+
+  // ── Log main event ──────────────────────────────────
+  const txId = Date.now() + Math.random();
+  state.events.push({ q: state.question, team: ti, quizzerIdx: qi, type, ptsAfter: quizzerCorrectPts(qz), txId });
+
+  // ── Team bonus (distinct scorers) ───────────────────
+  if (type === 'c') {
+    const scorers  = distinctScorers(team);
+    const newBonus = scorers >= 7 ? 3 : scorers >= 6 ? 2 : scorers >= 5 ? 1 : 0;
+    if (newBonus > team.bonusLevel) {
+      const gained = newBonus - team.bonusLevel;
+      team.bonusLevel = newBonus;
+      showToast(`🎉 ${team.name} — ${scorers}-Quizzer Bonus! +${gained*20} pts`, 'bonus');
+      state.events.push({ q: state.question, team: ti, quizzerIdx: qi, type:'bonus',
+        note: `${scorers}-quizzer bonus`, ptsAfter: getTeamScore(ti), txId });
+    }
+  }
+
+  // Auto-advance on correct or error
+  if (type==='c' || type==='e') state.question++;
+
+  renderGame();
+  showUndo(`${qz.name} — ${typeLabel(type)}`);
+}
+
+// ══════════════════════════════════════════════════════
+//  UNDO
+// ══════════════════════════════════════════════════════
+function undoLast() {
+  if (!state.undoStack.length) return;
+  const snap = state.undoStack.pop();
+  // Remove all events sharing the last transaction's txId (main event + any bonus event)
+  if (state.events.length) {
+    const lastTxId = state.events[state.events.length - 1].txId;
+    while (state.events.length && state.events[state.events.length - 1].txId === lastTxId) {
+      state.events.pop();
+    }
+  }
+  state.teams    = snap.teams;
+  state.question = snap.question;
+  renderGame();
+  hideUndo();
+}
+
+function changeQ(d) {
+  state.question = Math.max(1, state.question + d);
+  document.getElementById('q-num').textContent = state.question;
+}
+
+// ══════════════════════════════════════════════════════
+//  CUSTOM SCORE TOGGLE
+// ══════════════════════════════════════════════════════
+function toggleCustomScore() {
+  customScore = !customScore;
+  document.getElementById('btn-custom').classList.toggle('active', customScore);
+  renderGame();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════
+function renderGame() {
+  document.getElementById('q-num').textContent = state.question;
+  renderTopbar();
+  renderAllPanels();
+  if (chartVisible) drawChart();
+  if (logVisible)   renderLog();
+}
+
+function renderTopbar() {
+  const el = document.getElementById('topbar-scores');
+  let html = '';
+  state.teams.forEach((t, ti) => {
+    if (ti > 0) html += `<div class="vs-text">·</div>`;
+    const cls   = ['total-a','total-b','total-c'][ti];
+    const score = customScore ? getTeamCustomScore(ti) : getTeamScore(ti);
+    html += `<div class="total-block">
+      <div class="t-name">${esc(t.name)}</div>
+      <div class="t-score ${cls}">${score}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderAllPanels() {
+  const cont = document.getElementById('teams-container');
+  if (cont.children.length !== 3) {
+    cont.innerHTML='';
+    state.teams.forEach((_,ti) => {
+      const d = document.createElement('div');
+      d.className = `team-panel panel-${TEAM_KEYS[ti]}`;
+      d.id = `panel-${ti}`;
+      cont.appendChild(d);
+    });
+  }
+  state.teams.forEach((_,ti) => renderPanel(ti));
+}
+
+function renderPanel(ti) {
+  const team  = state.teams[ti];
+  const panel = document.getElementById(`panel-${ti}`);
+
+  const score        = getTeamScore(ti);   // team total never changes
+  const customBreakdown = customScore ? getCustomBreakdown(ti) : null;
+  const customLabel  = customScore ? `<div class="panel-custom-score">weighted spread</div>` : '';
+  const scorers      = distinctScorers(team);
+
+  // Team error pool pips
+  const pool = team.teamErrPool;
+  let pipHtml = '<div class="err-pool-pips">';
+  const showPips = Math.max(pool, 6);
+  for (let i = 1; i <= showPips; i++) {
+    const lit = i <= pool;
+    const cls = !lit ? 'err-pip' : i <= 3 ? 'err-pip tier0' : i <= 6 ? 'err-pip tier1' : 'err-pip tier2';
+    pipHtml += `<div class="${cls}" title="Team error ${i}"></div>`;
+  }
+  pipHtml += '</div>';
+
+  const errPen    = teamErrPenalty(pool);
+  const penLabel  = pool > 3 ? ` (−${errPen} pts)` : pool > 0 ? ' (free)' : '';
+  const poolLabel = `<span class="err-pool-label">Team errors: ${pool}${penLabel}</span>`;
+
+  // Bonus strip
+  const bonusThresholds = [
+    { n:5, label:'5-Q Bonus' },
+    { n:6, label:'6-Q Bonus' },
+    { n:7, label:'7-Q Bonus' },
+  ];
+  let bonusHtml = '<div class="bonus-strip"><span style="font-size:9px;color:var(--text-dim)">Bonus:</span>';
+  bonusThresholds.forEach((b, idx) => {
+    const earned = scorers >= b.n;
+    bonusHtml += `<span class="bonus-pip ${earned?'earned':''}" title="+20 when ${b.n} quizzers each answer correctly">${b.label}${earned?' ✓':''}</span>`;
+  });
+  bonusHtml += '</div>';
+
+  let html = `<div class="panel-header">
+    <div class="panel-name">${esc(team.name)}</div>
+    <div class="panel-coach">Coach: ${esc(team.coach)}</div>
+    <div class="panel-score-block">
+      <div class="panel-team-score">${score} pts</div>
+      ${customLabel}
+    </div>
+  </div>
+  <div class="team-err-bar">${pipHtml}${poolLabel}</div>
+  ${bonusHtml}
+  <table class="quizzer-table">
+    <thead><tr>
+      <th>Quizzer</th>
+      <th title="Correct">✓</th>
+      <th title="Personal effective errors">Err</th>
+      <th title="Fouls">F</th>
+      <th title="Tech fouls">TF</th>
+      <th title="${customScore ? 'Weighted pts share (from team pool)' : 'Correct points'}">${customScore ? 'Wgt Pts' : 'Pts'}</th>
+      ${customScore ? '<th title="Error penalty share">Err −</th>' : ''}
+      <th>Actions</th>
+    </tr></thead><tbody>`;
+
+  team.quizzers.forEach((qz, qi) => {
+    const rowClass = qz.errorOut ? 'errout' : qz.quizOut ? 'quizout' : '';
+    const canScore = !qz.quizOut && !qz.perfect && !qz.errorOut;
+    const canErr   = !qz.errorOut;
+
+    const statusBadge = qz.perfect
+      ? '<span class="status-badge badge-perfect">⭐ PERFECT</span>'
+      : qz.quizOut
+      ? '<span class="status-badge badge-quizout">QUIZ OUT</span>'
+      : qz.errorOut
+      ? '<span class="status-badge badge-errout">ERR OUT</span>'
+      : '';
+
+    const foulPips   = buildFoulPips(qz.stats.f);
+    const errDetail  = qz.foulDebt > 0 ? `<div class="err-detail">${qz.stats.e}r+${qz.foulDebt}f</div>` : '';
+
+    // Pts column
+    let ptsVal, errShareVal;
+    if (customScore && customBreakdown) {
+      const bd = customBreakdown[qi];
+      ptsVal     = bd.ptsShare > 0 ? bd.ptsShare : '—';
+      errShareVal = bd.errShare > 0 ? `−${bd.errShare}` : bd.tfPen > 0 ? `−${bd.tfPen}` : '—';
+    } else {
+      ptsVal = quizzerCorrectPts(qz);
+      errShareVal = null;
+    }
+
+    html += `<tr class="${rowClass}">
+      <td><div class="qname-cell">
+        ${qz.cap?'<span class="captain-star">★</span>':''}
+        <span class="qname-text" title="${esc(qz.name)}">${esc(qz.name)}</span>
+        ${statusBadge}
+      </div></td>
+      <td><span class="stat-cell correct">${qz.stats.c}</span></td>
+      <td><span class="stat-cell errors">${qz.effErrors}</span>${errDetail}</td>
+      <td>${foulPips}</td>
+      <td><span class="stat-cell tfouls">${qz.stats.tf}</span></td>
+      <td><span class="stat-cell ${customScore?'cpts':'pts'}">${ptsVal}</span></td>
+      ${customScore ? `<td><span class="stat-cell errors" style="font-size:11px">${errShareVal}</span></td>` : ''}
+      <td><div class="action-btns">
+        <button class="act-btn c"  ${canScore?'':'disabled'} onclick="recordEvent(${ti},${qi},'c')">✓ Correct</button>
+        <button class="act-btn e"  ${canErr  ?'':'disabled'} onclick="recordEvent(${ti},${qi},'e')">✗ Error</button>
+        <button class="act-btn f"  onclick="recordEvent(${ti},${qi},'f')">Foul</button>
+        <button class="act-btn tf" onclick="recordEvent(${ti},${qi},'tf')">T.Foul</button>
+      </div></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  panel.innerHTML = html;
+}
+
+function buildFoulPips(count) {
+  const show = Math.max(count, 2);
+  let html = '<div class="foul-meter">';
+  for (let i=1; i<=show; i++) {
+    const lit  = i<=count;
+    const warn = lit && (i%2===0);
+    html += `<div class="${!lit?'foul-pip':warn?'foul-pip warn':'foul-pip lit'}"></div>`;
+  }
+  html += `<span class="foul-count">${count}</span></div>`;
+  return html;
+}
+
+// ══════════════════════════════════════════════════════
+//  CHART
+// ══════════════════════════════════════════════════════
+function toggleChart() {
+  chartVisible = !chartVisible;
+  document.getElementById('chart-section').style.display = chartVisible?'block':'none';
+  if (chartVisible) drawChart();
+}
+
+function drawChart() {
+  const canvas = document.getElementById('scoreChart');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.offsetWidth, H = 250;
+  canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#12151c'; ctx.fillRect(0,0,W,H);
+
+  const evs = state.events.filter(e=>e.type!=='bonus');
+  if (!evs.length) {
+    ctx.fillStyle='#6b7583'; ctx.font='13px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('No events yet — start scoring!',W/2,H/2); return;
+  }
+
+  const maxQ=Math.max(...evs.map(e=>e.q),state.question);
+  const PAD={top:14,right:14,bottom:34,left:48};
+  const plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+
+  // Build team-level cumulative score series
+  const series=[];
+  state.teams.forEach((team,ti) => {
+    const pts=[{q:0,score:0}];
+    for (let q=1;q<=maxQ;q++) {
+      // Recompute score at question q by replaying all events up to q
+      const snap = replayScore(ti, q);
+      pts.push({q,score:snap});
+    }
+    series.push({name:team.name,points:pts,color:['#00e5ff','#ff4d6d','#c084fc'][ti],lineWidth:2.5});
+
+    // Also per-quizzer thinner lines
+    team.quizzers.forEach((qz,qi) => {
+      const ci = ti*7+qi;
+      const qpts=[{q:0,score:0}];
+      let cum=0;
+      for (let q=1;q<=maxQ;q++) {
+        const qevs=evs.filter(e=>e.team===ti&&e.quizzerIdx===qi&&e.q===q);
+        if (qevs.length) cum=qevs[qevs.length-1].ptsAfter;
+        qpts.push({q,score:cum});
+      }
+      series.push({name:qz.name,points:qpts,color:CHART_COLORS[ci%CHART_COLORS.length],lineWidth:1.2,dash:[3,3]});
+    });
+  });
+
+  const allS=series.flatMap(s=>s.points.map(p=>p.score));
+  const minS=Math.min(0,...allS),maxS=Math.max(20,...allS),rng=maxS-minS||1;
+  const xOf=q=>PAD.left+(q/maxQ)*plotW;
+  const yOf=s=>PAD.top+plotH-((s-minS)/rng)*plotH;
+
+  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+  for (let i=0;i<=4;i++){const y=PAD.top+(i/4)*plotH;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+plotW,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(255,255,255,.12)';
+  ctx.beginPath();ctx.moveTo(PAD.left,yOf(0));ctx.lineTo(PAD.left+plotW,yOf(0));ctx.stroke();
+
+  ctx.fillStyle='#6b7583';ctx.font='9px IBM Plex Mono,monospace';ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const val=minS+(rng*(4-i)/4);ctx.fillText(Math.round(val),PAD.left-4,PAD.top+(i/4)*plotH+3);}
+  ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(maxQ/8));
+  for(let q=0;q<=maxQ;q+=step)ctx.fillText('Q'+q,xOf(q),PAD.top+plotH+15);
+
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color; ctx.lineWidth=s.lineWidth||1.5;
+    if(s.dash) ctx.setLineDash(s.dash); else ctx.setLineDash([]);
+    ctx.beginPath();
+    s.points.forEach((p,i)=>i===0?ctx.moveTo(xOf(p.q),yOf(p.score)):ctx.lineTo(xOf(p.q),yOf(p.score)));
+    ctx.stroke(); ctx.setLineDash([]);
+    if (!s.dash) s.points.slice(1).forEach(p=>{ctx.beginPath();ctx.arc(xOf(p.q),yOf(p.score),2.5,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();});
+  });
+
+  // Legend — teams only
+  document.getElementById('chart-legend').innerHTML = state.teams.map((t,ti)=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${['#00e5ff','#ff4d6d','#c084fc'][ti]}"></div>
+      <span style="font-weight:600">${esc(t.name)}</span>
+    </div>`).join('') + `<div class="legend-item" style="opacity:.5"><div class="legend-dot" style="border:1px dashed #666;background:transparent"></div><span>individual quizzers (dashed)</span></div>`;
+}
+
+// Replay team score up to question q
+function replayScore(ti, upToQ) {
+  const team = state.teams[ti];
+  // Use a simple approach: sum correct pts + bonus already earned by question upToQ
+  // (We stored teamScore at each event, but it's cleaner to use the live team since undo restores it)
+  // For chart purposes only — we track teamScore snapshots in events
+  const teamEvs = state.events.filter(e => e.team===ti && e.q<=upToQ && e.type!=='bonus');
+  // Just return the latest ptsAfter for team events, or 0
+  // Actually for team score we need to replay differently — track running total
+  // Sum correct pts per quizzer up to question upToQ (ignoring error tiers for simplicity in chart)
+  let score = 0;
+  team.quizzers.forEach((qz,qi) => {
+    const c = state.events.filter(e=>e.team===ti&&e.quizzerIdx===qi&&e.q<=upToQ&&e.type==='c').length;
+    score += c * 20;
+  });
+  // bonus pts
+  const scorersAtQ = team.quizzers.filter(qz => {
+    return state.events.some(e=>e.team===ti&&e.quizzerIdx===team.quizzers.indexOf(qz)&&e.q<=upToQ&&e.type==='c');
+  }).length;
+  score += (scorersAtQ>=5?1:0 + (scorersAtQ>=6?1:0) + (scorersAtQ>=7?1:0)) * 20;
+  return score;
+}
+
+// ══════════════════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════════════════
+function toggleLog() {
+  logVisible = !logVisible;
+  document.getElementById('log-section').style.display = logVisible?'block':'none';
+  if (logVisible) renderLog();
+}
+
+function renderLog() {
+  const list = document.getElementById('log-list');
+  if (!state.events.length) {
+    list.innerHTML='<div class="log-entry"><span style="color:var(--text-dim)">No events yet.</span></div>';
+    return;
+  }
+  list.innerHTML = [...state.events].reverse().map(e => {
+    const team = state.teams[e.team];
+    if (e.type==='bonus') return `<div class="log-entry bonus">
+      <span class="log-q">Q${e.q}</span>
+      <span class="log-team">${esc(team.name)}</span>
+      <span class="log-name">${esc(e.note||'Bonus')}</span>
+      <span class="log-type bonus">+20 Bonus</span>
+    </div>`;
+    const qz = team.quizzers[e.quizzerIdx];
+    return `<div class="log-entry ${e.type}">
+      <span class="log-q">Q${e.q}</span>
+      <span class="log-team">${esc(team.name)}</span>
+      <span class="log-name">${esc(qz.name)}${qz.cap?' ★':''}</span>
+      <span class="log-type ${e.type}">${typeLabel(e.type)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  TOASTS / UNDO / RESET / UTILS
+// ══════════════════════════════════════════════════════
+function showToast(msg, cls='') {
+  const c=document.getElementById('toast-container');
+  const d=document.createElement('div');
+  d.className=`toast ${cls}`; d.textContent=msg; c.appendChild(d);
+  setTimeout(()=>d.remove(),3200);
+}
+
+function showUndo(msg) {
+  document.getElementById('undo-msg').textContent=msg;
+  document.getElementById('undo-bar').classList.add('show');
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(hideUndo,4000);
+}
+function hideUndo(){document.getElementById('undo-bar').classList.remove('show');}
+
+function resetGame() {
+  if (!confirm('Reset all scores and return to Q1?')) return;
+  state.teams.forEach(t=>{
+    t.quizzers.forEach(qz=>{ qz.stats={c:0,e:0,f:0,tf:0}; qz.effErrors=0; qz.foulDebt=0; qz.quizOut=false; qz.errorOut=false; qz.perfect=false; });
+    t.teamErrPool=0; t.teamFoulDebt=0; t.bonusLevel=0;
+  });
+  state.events=[]; state.undoStack=[]; state.question=1;
+  renderGame();
+}
+
+function typeLabel(t){return{c:'Correct',e:'Error',f:'Foul',tf:'Tech Foul',bonus:'Bonus'}[t]||t;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+window.addEventListener('resize',()=>{if(chartVisible)drawChart();});
+</script>
+</body>
+</html>
