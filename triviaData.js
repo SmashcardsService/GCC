@@ -45,19 +45,19 @@ const trivia = {
 
   'Which quizzer randomly answered "Hunter" as their trivia question?': "Lorenzo Mullins",
 
-  "Who said they don't know anyone from MWTFC who does this?": "Oliver Lohrenz",
+  "Who thinks errors are awesome?": "Oliver Lohrenz",
   
-  "Who said they eat knees": "Stanley Chingus",
+  "Who said they eat knees?": "Stanley Chingus",
   
   "Who had the iconic “in my opinion” challenge in their rookie year that their ministry still makes fun of them for?":"Ryder Iantorno",
   
-  'Who is questioned to really exist on GCC': "Jake Miles",
+  'Who is questioned to really exist on GCC?': "Jake Miles",
   
   'Who bought nationals shirts from 5 teams other than their own in 2025?': "Josiah Price",
   
-  'Who invented "the Thomas Game"': "Thomas Gossell",
+  'Who invented "the Thomas Game"?': "Thomas Gossell",
   
-  "Who is a fan of yogurt": "Jeremiah Price",
+  "Who is a fan of yogurt?": "Jeremiah Price",
   
   "Who is the only known person to be the top nationals all star during their rookie year?":"Judah Price",
   
@@ -76,6 +76,12 @@ const trivia = {
   "Which quizzer has a goal of playing college baseball once he graduates?": "Ryder Iantorno",
   
   "Who was taken on vacation for three weeks in order to be convinced to do quizzing?": "Miles Ritchie",
+  
+  "Who consistently eye reads wrong but still guess the question correctly?": "Sam Kastman",
+  
+  "Who claims they talk way too fast while answering?": "Kate Wicklund",
+  
+  "Who barely sneaks in nationals qualification every year cause they wanna go?": "Logan Smith",
   
   
 };
