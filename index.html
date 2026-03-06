@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GCC Hub</title>
+    <title>GCC Trivia</title>
     <link rel="stylesheet" href="GCCHub.css">
-	<link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body class="homePage">
     <header>
-        <h1>Home</h1>
+        <h1>GCC Trivia</h1>
     </header>
 
     <!-- Navigation Bar -->
@@ -20,25 +19,132 @@
         <a href="https://smashcardsservice.github.io/Bible_Quizzing/" target="_blank">Quizzing Game</a>
 		
     </nav>
-
+	 <main>	
+	<div id="streak"> 
+		<h3> Streak: <strong>0</strong> </h3>
+	</div>
+ 
     <!-- Hero Section (Main Banner) -->
-
-
+	<div id="trivia">
+		<div id="question">
+			<h2> An error occurred </h2>
+		</div>
+		<br><br>
+		<div id="answers">
+		
+				<button type ="button" class="triviaButton" id="answer1"> Name 1</button>
+	
+		
+				<button type ="button" class="triviaButton" id="answer2"> Name 2</button>
+		
+	
+				<button type ="button" class="triviaButton" id="answer3"> Name 3</button>
+		
+		
+				<button type ="button" class="triviaButton" id="answer4"> Name 4</button>
+			
+		</div>
+		<div id="output">
+			<h2> An error occurred </h2>
+		</div>
+	</div>
+	
     <!-- About Smashcards (Brief Overview) -->
-    <main>
+		<br>
+		<br>
+		<br>
+		<br>
+		<br>
+		<br>
+		<br>
+		<br>
+		<br>
 	    <section class="hero">
-        <h2>Good Clean Chaos Hub</h2>
-		<br>
-		<br>
-		<h2>Where all your good clean chaotic needs can be found</h2>
-		<br><br>
-		<h3>Good Clean Chaos (GCC) is a google chat with over 100 members </h3>
-		<br><br>
+        <h2><a href="https://forms.gle/NMKaGEwz6WRRPtAa9">Click here to submit your own trivia!</a></h2>
         <p>Sponsored by <a href="https://smashcardsservice.github.io/Website">Smashcards</a></p>
 		
     <footer>
         <p>&copy; 2026 GCC. All rights reserved. </p>
     </footer>
+	<script src="triviaData.js"></script>
+	<script>
+	let question = document.getElementById("question");
+		let answer1 = document.getElementById("answer1");
+		let answer2 = document.getElementById("answer2");
+		let answer3 = document.getElementById("answer3");
+		let answer4 = document.getElementById("answer4");
+		let output = document.getElementById("output");
+		let streakDisplay = document.querySelector("#streak strong");
+
+		let streak = 0;
+
+		
+		let remainingQuestions = Object.keys(trivia);
+
+		function loadQuestion() {
+			if (remainingQuestions.length === 0) {
+				remainingQuestions = Object.keys(trivia);
+			}
+
+			let randomIndex = Math.floor(Math.random() * remainingQuestions.length);
+			let randomKey = remainingQuestions[randomIndex];
+			remainingQuestions.splice(randomIndex, 1); 
+			let correctAnswer = trivia[randomKey];
+
+		
+			let allAnswers = Object.values(trivia).filter(a => a !== correctAnswer);
+			allAnswers.sort(() => 0.5 - Math.random());
+			let wrongAnswers = allAnswers.slice(0, 3);
+
+		
+			let answersArray = [correctAnswer, ...wrongAnswers];
+			answersArray.sort(() => 0.5 - Math.random());
+
+		
+			question.innerHTML = `<h2>${randomKey}</h2>`;
+			output.innerHTML = "";
+
+		
+			[answer1, answer2, answer3, answer4].forEach((btn, idx) => {
+				btn.innerText = answersArray[idx];
+				btn.disabled = false; 
+				btn.style.backgroundColor = ""; 
+				btn.onclick = () => checkAnswer(btn, correctAnswer); 
+			});
+		}
+
+	
+		function checkAnswer(button, correctAnswer) {
+			if (button.innerText === correctAnswer) {
+				output.innerHTML = `<h2>Correct!</h2>`;
+				streak++;
+				button.style.backgroundColor = "#4CAF50"; // green
+			} else {
+				output.innerHTML = `<h2>Incorrect! The correct answer was: ${correctAnswer}</h2>`;
+				streak = 0;
+				button.style.backgroundColor = "#F44336"; // red
+			}
+
+			
+			streakDisplay.innerText = streak;
+
+		
+			[answer1, answer2, answer3, answer4].forEach(btn => btn.disabled = true);
+
+			
+			let nextBtn = document.createElement("button");
+			nextBtn.innerText = "Next Question";
+			nextBtn.style.marginTop = "15px";
+			nextBtn.onclick = () => {
+				nextBtn.remove(); 
+				loadQuestion();   
+			};
+			output.appendChild(nextBtn);
+		}
+
+		
+		loadQuestion();
+	</script>
 </body>
 </html>
 
