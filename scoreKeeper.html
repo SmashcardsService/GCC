@@ -1,89 +1,933 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Score Keeper</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="GCCHub.css">
 <link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+/* ══ THEME VARIABLES ══ */
+[data-theme="dark"] {
+  --bg:          #0d1117;
+  --bg2:         #12151c;
+  --bg3:         #181c27;
+  --bg4:         #1e2333;
+  --border:      rgba(255,255,255,.08);
+  --border2:     rgba(255,255,255,.14);
+  --text:        #e8eaf0;
+  --text-dim:    #6b7583;
+  --text-mid:    #9aa0ad;
+  --accent-a:    #00e5ff;
+  --accent-b:    #ff4d6d;
+  --accent-c:    #c084fc;
+  --correct:     #22c55e;
+  --error:       #ef4444;
+  --foul:        #f59e0b;
+  --tfoul:       #ff6b35;
+  --bonus:       #ffd700;
+  --shadow:      0 4px 24px rgba(0,0,0,.5);
+}
+[data-theme="light"] {
+  --bg:          #f0f2f7;
+  --bg2:         #ffffff;
+  --bg3:         #f8f9fc;
+  --bg4:         #eef0f6;
+  --border:      rgba(0,0,0,.09);
+  --border2:     rgba(0,0,0,.16);
+  --text:        #1a1d27;
+  --text-dim:    #8a92a3;
+  --text-mid:    #4a5266;
+  --accent-a:    #0099bb;
+  --accent-b:    #d4003c;
+  --accent-c:    #8030cc;
+  --correct:     #16a34a;
+  --error:       #dc2626;
+  --foul:        #d97706;
+  --tfoul:       #ea580c;
+  --bonus:       #b8860b;
+  --shadow:      0 4px 24px rgba(0,0,0,.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+html { font-size:15px; }
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background .3s, color .3s;
+}
+
+/* ══ NAV ══ */
+nav {
+  display: flex; gap: 6px; align-items: center;
+  padding: 10px 16px; background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+nav a {
+  color: var(--text-mid); text-decoration: none;
+  font-size: 13px; font-weight: 600; padding: 4px 10px;
+  border-radius: 5px; letter-spacing:.03em;
+  transition: background .15s, color .15s;
+}
+nav a:hover { background: var(--bg4); color: var(--text); }
+
+/* ══ SETUP ══ */
+#setup-screen { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+.setup-header { text-align:center; margin-bottom: 24px; }
+.setup-header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem; letter-spacing: .06em;
+  background: linear-gradient(120deg, var(--accent-a), var(--accent-c));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.setup-header p { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+.rules-box {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px; margin-bottom: 24px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+}
+.rule-item {
+  font-size: 12px; line-height: 1.55; color: var(--text-mid);
+  padding: 8px 10px; background: var(--bg3);
+  border-radius: 6px; border-left: 3px solid var(--accent-a);
+}
+.rule-item strong { color: var(--text); display:block; margin-bottom:2px; }
+
+.teams-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.team-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px; transition: border-color .2s;
+}
+.team-card:hover { border-color: var(--border2); }
+.team-card h2 {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem;
+  letter-spacing: .08em; margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.team-a h2 { color: var(--accent-a); }
+.team-b h2 { color: var(--accent-b); }
+.team-c h2 { color: var(--accent-c); }
+
+.field-group { margin-bottom: 10px; }
+.field-group label { display:block; font-size:11px; font-weight:600; color:var(--text-dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+.field-group input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; color: var(--text);
+  font-family: inherit; font-size: 13px; transition: border-color .15s;
+}
+.field-group input:focus { outline:none; border-color: var(--accent-a); }
+[data-theme="light"] .field-group input { background: var(--bg4); }
+
+.quizzers-section h3 { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; margin:14px 0 8px; }
+.quizzer-row { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+.quizzer-num { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); width:16px; text-align:center; flex-shrink:0; }
+.quizzer-row input {
+  flex:1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 6px 8px; color: var(--text);
+  font-family: inherit; font-size: 12px; transition: border-color .15s;
+}
+.quizzer-row input:focus { outline:none; border-color: var(--accent-a); }
+[data-theme="light"] .quizzer-row input { background: var(--bg4); }
+
+.cap-toggle input[type=radio] { display:none; }
+.cap-badge {
+  font-size:10px; font-weight:700; padding:3px 7px; border-radius:4px;
+  border: 1px solid var(--border2); color:var(--text-dim); cursor:pointer;
+  user-select:none; transition: all .15s; white-space:nowrap;
+}
+input[type=radio]:checked + .cap-badge {
+  background: var(--bonus); border-color: var(--bonus);
+  color: #000;
+}
+
+.start-btn {
+  display: block; width: 100%; max-width: 340px; margin: 0 auto;
+  background: linear-gradient(120deg, var(--accent-a), var(--accent-c));
+  color: #fff; font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: .12em; padding: 14px 28px;
+  border: none; border-radius: 8px; cursor: pointer;
+  transition: opacity .15s, transform .1s; box-shadow: var(--shadow);
+}
+.start-btn:hover { opacity:.9; transform:translateY(-1px); }
+.start-btn:active { transform:translateY(0); }
+
+/* ══ GAME SCREEN ══ */
+#game-screen { display:none; }
+
+.game-topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+}
+.game-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem; letter-spacing: .08em; color: var(--text-dim);
+  flex-shrink: 0; display:none;
+}
+@media (min-width:600px){ .game-title { display:block; } }
+
+.scoreboard-totals { display:flex; gap:12px; align-items:center; flex:1; justify-content:center; flex-wrap:wrap; }
+.total-block { text-align:center; }
+.t-name { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); }
+.t-score { font-family:'IBM Plex Mono',monospace; font-size:1.6rem; font-weight:700; line-height:1; }
+.total-a { color:var(--accent-a); }
+.total-b { color:var(--accent-b); }
+.total-c { color:var(--accent-c); }
+.vs-text { color:var(--border2); font-size:1.1rem; }
+
+.topbar-right { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.q-label-sm { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; }
+.q-btn {
+  width:26px; height:26px; border:1px solid var(--border2);
+  background:var(--bg3); color:var(--text); border-radius:5px;
+  font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition: background .15s;
+}
+.q-btn:hover { background:var(--bg4); }
+.q-num-disp { font-family:'IBM Plex Mono',monospace; font-size:1rem; font-weight:700; min-width:24px; text-align:center; }
+
+.btn-sm {
+  padding:5px 9px; font-size:11px; font-weight:700; border-radius:5px;
+  border: 1px solid var(--border2); background: var(--bg3); color: var(--text);
+  cursor:pointer; transition: all .15s; white-space:nowrap; letter-spacing:.03em;
+}
+.btn-sm:hover { background:var(--bg4); border-color:var(--border2); }
+.btn-sm.active { background:var(--accent-a); color:#000; border-color:var(--accent-a); }
+.btn-sm.danger { color:var(--error); border-color:var(--error); }
+.btn-sm.danger:hover { background:var(--error); color:#fff; }
+.btn-sm.halftime-btn { color:var(--foul); border-color:var(--foul); }
+.btn-sm.halftime-btn:hover { background:var(--foul); color:#000; }
+.btn-sm.halftime-btn.marked { background:var(--foul); color:#000; }
+.btn-sm.end-quiz-btn { color:var(--correct); border-color:var(--correct); }
+.btn-sm.end-quiz-btn:hover { background:var(--correct); color:#fff; }
+
+/* Theme toggle button */
+.theme-toggle {
+  width:32px; height:32px; border-radius:50%;
+  border:1px solid var(--border2); background:var(--bg3);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:14px; transition: all .2s; flex-shrink:0;
+}
+.theme-toggle:hover { background:var(--bg4); }
+
+/* ══ LEADERBOARD BANNER ══ */
+#leaderboard-banner {
+  display:none;
+  background: linear-gradient(90deg, var(--bg2) 0%, rgba(255,215,0,.08) 50%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--bonus);
+  text-transform: uppercase;
+  animation: bannerPulse 3s ease-in-out infinite;
+  transition: all .4s;
+}
+@keyframes bannerPulse {
+  0%,100% { opacity:.8; }
+  50%      { opacity:1; }
+}
+#leaderboard-banner.show { display:block; }
+
+/* ══ TEAMS CONTAINER ══ */
+.teams-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px; padding: 14px;
+}
+@media (max-width: 900px) { .teams-container { grid-template-columns: 1fr; } }
+@media (min-width: 901px) and (max-width: 1100px) { .teams-container { grid-template-columns: repeat(2, 1fr); } }
+
+/* ══ TEAM PANEL ══ */
+.team-panel {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: border-color .2s;
+}
+.panel-a { border-top: 3px solid var(--accent-a); }
+.panel-b { border-top: 3px solid var(--accent-b); }
+.panel-c { border-top: 3px solid var(--accent-c); }
+
+.panel-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--bg3);
+  border-bottom: 1px solid var(--border); flex-wrap:wrap;
+}
+.panel-name { font-family:'Bebas Neue',monospace; font-size:1.2rem; letter-spacing:.06em; flex:1; }
+.panel-a .panel-name { color: var(--accent-a); }
+.panel-b .panel-name { color: var(--accent-b); }
+.panel-c .panel-name { color: var(--accent-c); }
+.panel-coach { font-size:11px; color:var(--text-dim); }
+.panel-score-block { text-align:right; }
+.panel-team-score { font-family:'IBM Plex Mono',monospace; font-size:1.5rem; font-weight:700; }
+.panel-custom-score { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+
+/* Rank badge on panel */
+.panel-rank {
+  font-family:'Bebas Neue',monospace; font-size:1.1rem;
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; flex-shrink:0;
+}
+.rank-1 { background: var(--bonus); color:#000; }
+.rank-2 { background: #aaa; color:#000; }
+.rank-3 { background: #cd7f32; color:#fff; }
+
+.team-err-bar { padding:6px 14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.err-pool-pips { display:flex; gap:3px; align-items:center; }
+.err-pip {
+  width:9px; height:9px; border-radius:2px;
+  background: var(--bg4); border:1px solid var(--border2); flex-shrink:0;
+}
+.err-pip.tier0 { background: var(--error); border-color:var(--error); opacity:.65; }
+.err-pip.tier1 { background: var(--error); border-color:var(--error); }
+.err-pip.tier2 { background: #7f0000; border-color:#ff0000; box-shadow:0 0 4px #f00; }
+.err-pool-label { font-size:10px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+
+.bonus-strip {
+  padding: 4px 14px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+}
+.bonus-pip {
+  font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px;
+  border:1px solid var(--border2); color:var(--text-dim);
+  letter-spacing:.04em; transition: all .2s;
+}
+.bonus-pip.earned {
+  background: rgba(255,215,0,.18); border-color:var(--bonus);
+  color:var(--bonus);
+}
+
+/* ══ QUIZZER TABLE ══ */
+.quizzer-table {
+  width:100%; border-collapse:collapse; font-size:12px;
+}
+.quizzer-table thead tr { background:var(--bg3); }
+.quizzer-table th {
+  padding:6px 8px; text-align:left; font-size:9px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim);
+  border-bottom:1px solid var(--border);
+}
+.quizzer-table td {
+  padding:5px 8px; border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.quizzer-table tr:last-child td { border-bottom:none; }
+.quizzer-table tr:hover td { background:rgba(255,255,255,.02); }
+[data-theme="light"] .quizzer-table tr:hover td { background:rgba(0,0,0,.02); }
+
+.qname-cell { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.captain-star { color:var(--bonus); font-size:11px; flex-shrink:0; }
+.qname-text { font-weight:600; font-size:12px; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-badge {
+  font-size:8px; font-weight:700; padding:2px 5px; border-radius:3px;
+  letter-spacing:.04em; text-transform:uppercase; flex-shrink:0;
+}
+.badge-perfect  { background:var(--bonus);   color:#000; }
+.badge-quizout  { background:var(--accent-a); color:#000; }
+.badge-errout   { background:var(--error);    color:#fff; }
+
+.stat-cell {
+  font-family:'IBM Plex Mono',monospace; font-size:12px;
+  padding:2px 5px; border-radius:3px; font-weight:600;
+}
+.stat-cell.correct { color:var(--correct); }
+.stat-cell.errors  { color:var(--error); }
+.stat-cell.cpts    { color:var(--correct); }
+.stat-cell.tfouls  { color:var(--tfoul); }
+.stat-cell.pts     { color:var(--text); }
+.err-detail { font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+
+.foul-meter { display:flex; gap:2px; align-items:center; }
+.foul-pip { width:7px; height:7px; border-radius:50%; background:var(--bg4); border:1px solid var(--border2); flex-shrink:0; }
+.foul-pip.lit  { background:var(--foul); border-color:var(--foul); }
+.foul-pip.warn { background:var(--error); border-color:var(--error); }
+.foul-count { font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; margin-left:2px; }
+
+/* Action buttons */
+.action-btns { display:flex; gap:3px; flex-wrap:wrap; }
+.act-btn {
+  padding:4px 7px; font-size:10px; font-weight:700; border-radius:4px;
+  border:1px solid; cursor:pointer; transition:all .12s; letter-spacing:.02em;
+  white-space:nowrap;
+}
+.act-btn.c  { background:rgba(34,197, 94,.12); border-color:var(--correct); color:var(--correct); }
+.act-btn.e  { background:rgba(239, 68, 68,.12); border-color:var(--error);  color:var(--error); }
+.act-btn.f  { background:rgba(245,158, 11,.12); border-color:var(--foul);   color:var(--foul); }
+.act-btn.tf { background:rgba(255,107, 53,.12); border-color:var(--tfoul);  color:var(--tfoul); }
+.act-btn:hover:not(:disabled) { filter:brightness(1.2); transform:scale(1.04); }
+.act-btn:active:not(:disabled) { transform:scale(.97); }
+.act-btn:disabled { opacity:.28; cursor:not-allowed; filter:none; transform:none; }
+
+/* ══ HALFTIME MARKER IN LOG ══ */
+.log-halftime {
+  text-align:center; font-size:11px; font-weight:700;
+  color:var(--foul); letter-spacing:.1em; text-transform:uppercase;
+  padding:6px; border-top:1px dashed var(--foul); border-bottom:1px dashed var(--foul);
+  margin:4px 0; background:rgba(245,158,11,.07);
+}
+
+/* ══ CHART ══ */
+.chart-section { padding:14px; }
+.chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.chart-title { font-family:'Bebas Neue',monospace; font-size:1.1rem; letter-spacing:.06em; color:var(--text-dim); }
+.chart-legend { display:flex; gap:14px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+#scoreChart { width:100%; border-radius:8px; display:block; }
+
+/* ══ LOG ══ */
+.log-section { padding:14px; }
+.log-title { font-family:'Bebas Neue',monospace; font-size:1.1rem; letter-spacing:.06em; color:var(--text-dim); margin-bottom:8px; }
+.log-list { display:flex; flex-direction:column; gap:2px; max-height:320px; overflow-y:auto; }
+.log-entry { display:flex; gap:8px; align-items:center; padding:5px 8px; border-radius:5px; font-size:12px; }
+.log-entry:nth-child(odd) { background:var(--bg3); }
+.log-entry.bonus { background:rgba(255,215,0,.06); }
+.log-q { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); min-width:28px; }
+.log-team { font-weight:700; font-size:10px; min-width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.log-name { flex:1; font-weight:600; }
+.log-type { font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; text-align:right; }
+.log-type.c     { color:var(--correct); }
+.log-type.e     { color:var(--error); }
+.log-type.f     { color:var(--foul); }
+.log-type.tf    { color:var(--tfoul); }
+.log-type.bonus { color:var(--bonus); }
+
+/* ══ UNDO BAR ══ */
+.undo-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 16px; background:var(--bg2); border-top:1px solid var(--border);
+  box-shadow: 0 -2px 12px rgba(0,0,0,.25);
+  font-size:12px;
+}
+#undo-msg { color:var(--text-mid); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.undo-action-btn {
+  background:var(--bg3); border:1px solid var(--border2); color:var(--text);
+  padding:5px 14px; border-radius:5px; font-size:11px; font-weight:700;
+  cursor:pointer; letter-spacing:.06em; transition: all .15s; margin-left:12px; flex-shrink:0;
+}
+.undo-action-btn:hover:not(:disabled) { background:var(--bg4); }
+.undo-action-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+/* ══ TOAST ══ */
+.toast-container { position:fixed; top:70px; right:16px; z-index:300; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
+.toast {
+  padding:9px 14px; border-radius:7px; font-size:12px; font-weight:700;
+  background:var(--bg2); border:1px solid var(--border2); color:var(--text);
+  box-shadow:var(--shadow); animation:toastIn .2s ease;
+  max-width:260px;
+}
+.toast.perfect  { border-color:var(--bonus);   color:var(--bonus);  background:rgba(255,215,0,.1); }
+.toast.quizout  { border-color:var(--accent-a); color:var(--accent-a); }
+.toast.errout   { border-color:var(--error);    color:var(--error); }
+.toast.bonus    { border-color:var(--bonus);    color:var(--bonus); }
+@keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+/* ══ END-OF-QUIZ MODAL ══ */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:400;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+.modal-overlay.show { display:flex; }
+.stats-modal {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:14px; padding:24px; max-width:700px; width:100%;
+  max-height:90vh; overflow-y:auto; box-shadow:var(--shadow);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+
+.stats-modal-header {
+  text-align:center; margin-bottom:20px; padding-bottom:16px;
+  border-bottom:1px solid var(--border);
+}
+.stats-modal-header h2 {
+  font-family:'Bebas Neue',monospace; font-size:2.2rem;
+  letter-spacing:.1em;
+  background:linear-gradient(120deg, var(--bonus), var(--accent-c));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.stats-modal-header p { color:var(--text-dim); font-size:13px; margin-top:4px; }
+
+/* Winner podium */
+.podium { display:flex; justify-content:center; align-items:flex-end; gap:12px; margin-bottom:24px; }
+.podium-place {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:12px 16px; border-radius:10px; border:1px solid var(--border);
+  min-width:120px; text-align:center; transition:all .3s;
+}
+.podium-place.first {
+  background:rgba(255,215,0,.1); border-color:var(--bonus);
+  padding-top:20px; order:-1;
+}
+.podium-place.second { background:rgba(170,170,170,.1); border-color:#aaa; }
+.podium-place.third  { background:rgba(205,127,50,.1);  border-color:#cd7f32; }
+.podium-trophy { font-size:1.8rem; line-height:1; }
+.podium-team-name { font-family:'Bebas Neue',monospace; font-size:1rem; letter-spacing:.06em; }
+.podium-score {
+  font-family:'IBM Plex Mono',monospace; font-size:1.6rem; font-weight:700;
+}
+.podium-place.first  .podium-score { color:var(--bonus); }
+.podium-place.second .podium-score { color:#aaa; }
+.podium-place.third  .podium-score { color:#cd7f32; }
+
+/* MVP cards */
+.mvp-section { margin-bottom:20px; }
+.mvp-section-title {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--text-dim);
+  margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border);
+}
+.mvp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+.mvp-card {
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:8px; padding:10px 12px;
+}
+.mvp-card-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin-bottom:3px; }
+.mvp-card-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mvp-card-team { font-size:10px; color:var(--text-mid); }
+.mvp-card-stat { font-family:'IBM Plex Mono',monospace; font-size:1.1rem; font-weight:700; margin-top:4px; }
+
+/* Per-team quizzer breakdown */
+.team-breakdown { margin-bottom:16px; }
+.team-breakdown-header {
+  font-family:'Bebas Neue',monospace; font-size:1rem; letter-spacing:.06em;
+  margin-bottom:6px;
+}
+.breakdown-table { width:100%; border-collapse:collapse; font-size:12px; }
+.breakdown-table th {
+  text-align:left; padding:4px 8px; font-size:9px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim);
+  background:var(--bg3); border-bottom:1px solid var(--border);
+}
+.breakdown-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
+.breakdown-table tr:last-child td { border-bottom:none; }
+.hi { color:var(--correct); font-weight:700; }
+.lo { color:var(--error); }
+
+.close-modal-btn {
+  display:block; width:100%; margin-top:20px; padding:11px;
+  background:var(--bg3); border:1px solid var(--border2); color:var(--text);
+  border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;
+  letter-spacing:.06em; transition:background .15s;
+}
+.close-modal-btn:hover { background:var(--bg4); }
+
+/* ══ HALFTIME STRIP ══ */
+#halftime-strip {
+  display:none; text-align:center; padding:8px 16px;
+  background:rgba(245,158,11,.10); border-top:1px dashed var(--foul);
+  border-bottom:1px dashed var(--foul); font-size:12px; font-weight:700;
+  color:var(--foul); letter-spacing:.1em; text-transform:uppercase;
+}
+#halftime-strip.show { display:block; }
+
+/* ══ MOBILE TOUCH IMPROVEMENTS ══ */
+@media (max-width:600px) {
+  .act-btn { padding:7px 10px; font-size:11px; }
+  .quizzer-table th, .quizzer-table td { padding:5px 5px; }
+  .game-topbar { padding:6px 10px; gap:6px; }
+  .teams-container { padding:8px; gap:8px; }
+  .panel-header { padding:8px 10px; }
+  .qname-text { max-width:70px; }
+  .stats-modal { padding:16px; }
+  .podium { flex-direction:column; align-items:center; }
+  .podium-place { width:100%; max-width:240px; padding:12px 16px; }
+  .podium-place.first { order:unset; }
+}
+
+/* ══ FULLSCREEN SCOREBOARD ══ */
+#fullscreen-overlay {
+  display:none; position:fixed; inset:0; z-index:500;
+  background:#0a0d12;
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:0; cursor:pointer;
+}
+#fullscreen-overlay.show { display:flex; }
+
+.fs-header {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem; letter-spacing:.2em; color:rgba(255,255,255,.2);
+  text-transform:uppercase; margin-bottom:32px;
+}
+.fs-teams {
+  display:flex; gap:48px; align-items:flex-end;
+  justify-content:center; flex-wrap:wrap; padding:0 32px;
+}
+.fs-team {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  flex:1; min-width:180px;
+}
+.fs-team-name {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.8rem, 4vw, 3.2rem);
+  letter-spacing:.1em; text-align:center;
+  opacity:.8;
+}
+.fs-score {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(6rem, 20vw, 18rem);
+  line-height:.85; letter-spacing:-.02em;
+  text-align:center;
+}
+.fs-errors {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:clamp(4rem, 14vw, 12rem);
+  font-weight:700; opacity:.65; letter-spacing:.06em;
+}
+.fs-team-a .fs-score, .fs-team-a .fs-team-name { color:#00e5ff; }
+.fs-team-b .fs-score, .fs-team-b .fs-team-name { color:#ff4d6d; }
+.fs-team-c .fs-score, .fs-team-c .fs-team-name { color:#c084fc; }
+.fs-errors-label { font-size:.65em; opacity:.6; margin-right:4px; }
+
+.fs-divider {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(3rem, 8vw, 8rem);
+  color:rgba(255,255,255,.1);
+  align-self:center; padding-bottom:40px;
+}
+.fs-q-label {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:clamp(.9rem, 2vw, 1.4rem);
+  color:rgba(255,255,255,.25); letter-spacing:.15em;
+  margin-top:36px; text-transform:uppercase;
+}
+.fs-close-hint {
+  position:absolute; bottom:20px; right:24px;
+  font-size:11px; color:rgba(255,255,255,.18); letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+/* ══ CAPTAIN CHANGE MODAL ══ */
+#cap-modal-overlay {
+  display:none; position:fixed; inset:0; z-index:450;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+#cap-modal-overlay.show { display:flex; }
+.cap-modal {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:12px; padding:20px; max-width:460px; width:100%;
+  box-shadow:var(--shadow); animation:modalIn .2s ease;
+}
+.cap-modal h3 {
+  font-family:'Bebas Neue',monospace; font-size:1.4rem;
+  letter-spacing:.08em; margin-bottom:4px; color:var(--text);
+}
+.cap-modal p { font-size:12px; color:var(--text-dim); margin-bottom:16px; }
+.cap-team-section { margin-bottom:14px; }
+.cap-team-label {
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; margin-bottom:6px; padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+.cap-quizzer-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 8px; border-radius:6px; margin-bottom:3px;
+  cursor:pointer; transition:background .12s;
+}
+.cap-quizzer-row:hover { background:var(--bg3); }
+.cap-quizzer-row.is-cap { background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.25); }
+.cap-qname { font-size:13px; font-weight:600; }
+.cap-badge-live {
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px;
+  border:1px solid var(--border2); color:var(--text-dim); cursor:pointer;
+  user-select:none; transition:all .15s;
+}
+.cap-badge-live.active { background:var(--bonus); border-color:var(--bonus); color:#000; }
+.cap-modal-close {
+  display:block; width:100%; margin-top:8px; padding:9px;
+  background:var(--bg3); border:1px solid var(--border2); color:var(--text);
+  border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;
+  transition:background .15s;
+}
+.cap-modal-close:hover { background:var(--bg4); }
+
+/* ══ VERSE LOOKUP MODAL ══ */
+#verse-modal-overlay {
+  display:none; position:fixed; inset:0; z-index:450;
+  background:rgba(0,0,0,.75); backdrop-filter:blur(5px);
+  align-items:flex-start; justify-content:center;
+  padding:60px 16px 80px;
+  overflow-y:auto;
+}
+#verse-modal-overlay.show { display:flex; }
+.verse-modal {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:14px; padding:22px; width:100%; max-width:680px;
+  box-shadow:var(--shadow); animation:modalIn .2s ease;
+  position:relative;
+}
+.verse-modal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px;
+}
+.verse-modal-header h3 {
+  font-family:'Bebas Neue',monospace; font-size:1.5rem;
+  letter-spacing:.08em; color:var(--text);
+}
+.verse-modal-close-x {
+  background:none; border:none; color:var(--text-dim);
+  font-size:1.4rem; cursor:pointer; line-height:1; padding:2px 6px;
+  border-radius:4px; transition:background .15s;
+}
+.verse-modal-close-x:hover { background:var(--bg4); color:var(--text); }
+
+/* Search bar */
+.verse-search-row {
+  display:flex; gap:8px; margin-bottom:16px;
+}
+.verse-search-input {
+  flex:1; background:var(--bg3); border:1px solid var(--border2);
+  border-radius:7px; padding:9px 12px; color:var(--text);
+  font-family:'IBM Plex Mono',monospace; font-size:14px;
+  transition:border-color .15s;
+}
+.verse-search-input:focus { outline:none; border-color:var(--accent-a); }
+[data-theme="light"] .verse-search-input { background:var(--bg4); }
+.verse-search-btn {
+  padding:9px 16px; background:var(--accent-a); color:#000;
+  border:none; border-radius:7px; font-size:12px; font-weight:700;
+  cursor:pointer; letter-spacing:.04em; transition:opacity .15s;
+  white-space:nowrap;
+}
+.verse-search-btn:hover { opacity:.85; }
+
+/* PDF status bar */
+.pdf-status {
+  font-size:11px; color:var(--text-dim); margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+.pdf-status-dot {
+  width:7px; height:7px; border-radius:50%; flex-shrink:0;
+  background:var(--text-dim);
+}
+.pdf-status-dot.ok  { background:var(--correct); }
+.pdf-status-dot.err { background:var(--error); }
+.pdf-status-dot.loading { background:var(--foul); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Results */
+.verse-results { display:flex; flex-direction:column; gap:14px; }
+.verse-no-results {
+  text-align:center; padding:24px; color:var(--text-dim);
+  font-size:13px;
+}
+.verse-q-card {
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:10px; padding:14px; transition:border-color .2s;
+}
+.verse-q-ref {
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  font-weight:700; color:var(--accent-a); letter-spacing:.06em;
+  text-transform:uppercase; margin-bottom:8px;
+}
+.verse-q-text {
+  font-size:13px; font-weight:600; color:var(--text);
+  line-height:1.6; margin-bottom:10px;
+}
+.verse-q-answer {
+  font-size:12px; color:var(--text-mid);
+  padding:6px 10px; background:var(--bg4);
+  border-radius:5px; border-left:3px solid var(--correct);
+}
+.verse-q-answer strong { color:var(--correct); font-size:10px; text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:2px; }
+
+/* Word buttons */
+.word-buttons {
+  display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;
+}
+.word-btn {
+  font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600;
+  padding:4px 8px; border-radius:4px; cursor:pointer;
+  border:1px solid var(--border2); background:var(--bg4);
+  color:var(--text-mid); transition:all .12s; user-select:none;
+}
+.word-btn:hover { border-color:var(--accent-a); color:var(--text); }
+.word-btn.lit   { background:var(--accent-a); border-color:var(--accent-a); color:#000; }
+.word-btn.selected { background:var(--correct); border-color:var(--correct); color:#fff; transform:scale(1.08); }
+
+/* Jump counter */
+.jump-counter {
+  display:flex; align-items:center; gap:10px; margin-top:6px;
+  min-height:24px;
+}
+.jump-count-badge {
+  font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;
+  padding:3px 10px; border-radius:4px;
+  background:rgba(0,229,255,.12); border:1px solid var(--accent-a);
+  color:var(--accent-a); transition:all .2s;
+}
+.jump-count-badge.has-count {
+  background:var(--correct); border-color:var(--correct); color:#fff;
+}
+.jump-reset-btn {
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px;
+  border:1px solid var(--border2); background:none; color:var(--text-dim);
+  cursor:pointer; transition:all .12s; letter-spacing:.04em;
+}
+.jump-reset-btn:hover { background:var(--bg4); color:var(--text); }
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+</style>
 </head>
 <body>
 <div class="app">
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="trivia.html">GCC Trivia</a>
-		<a href="scoreKeeper.html">Score Keeper</a>
-        <a href="https://smashcardsservice.github.io/Bible_Quizzing/" target="_blank">Quizzing Game</a>
-      
-		
-    </nav>
-<!-- ══ SETUP ══ -->
-<div id="setup-screen">
-  <div class="setup-header">
-    <h1>Score Keeper</h1>
-    <p>Bible Quizzing Scorekeeping</p>
-  </div>
-  <div class="rules-box">
-    <div class="rule-item"><strong>Correct:</strong> +20 each · 5th = Quiz Out<br>5 correct, no errors/fouls = Perfect (110)</div>
-    <div class="rule-item"><strong>Team Errors:</strong> All member errors + foul pairs pool together<br>1–3 free · 4–6 = −10 each · 7+ = −20 each</div>
-    <div class="rule-item"><strong>Fouls (collective):</strong> Team foul pairs → team errors<br>Individual error-out at 3 personal errors</div>
-    <div class="rule-item"><strong>Tech Fouls:</strong> −10 pts each · <strong>Captain:</strong> one per team</div>
-    <div class="rule-item"><strong>Team Bonus:</strong> +20 when 5 different quizzers answer correctly<br>+20 more at 6 · +20 more at 7</div>
-    <div class="rule-item"><strong>Score Distribution:</strong> Team pts ÷ quizzers who answered · Bonus ÷ quizzers who scored<br>Error penalty ÷ quizzers who erred (analysis mode)</div>
-  </div>
-  <div class="teams-grid">
-    <div class="team-card team-a"><h2>Team A</h2><div id="setup-a"></div></div>
-    <div class="team-card team-b"><h2>Team B</h2><div id="setup-b"></div></div>
-    <div class="team-card team-c"><h2>Team C</h2><div id="setup-c"></div></div>
-  </div>
-  <button class="start-btn" onclick="startGame()">START QUIZ</button>
-</div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="trivia.html">GCC Trivia</a>
+    <a href="scoreKeeper.html">Score Keeper</a>
+	<a href="bingo.html">2026 Nats Bingo</a>
+    <a href="https://smashcardsservice.github.io/Bible_Quizzing/" target="_blank">Quizzing Game</a>
+  </nav>
 
-<!-- ══ GAME ══ -->
-<div id="game-screen">
-  <div class="game-topbar">
-    <div class="game-title">Scorekeeping</div>
-    <div class="scoreboard-totals" id="topbar-scores"></div>
-    <div class="topbar-right">
-      <span class="q-label-sm">Q</span>
-      <button class="q-btn" onclick="changeQ(-1)">−</button>
-      <span class="q-num-disp" id="q-num">1</span>
-      <button class="q-btn" onclick="changeQ(1)">+</button>
-      <button class="btn-sm" id="btn-custom" onclick="toggleCustomScore()">Score distribution</button>
-      <button class="btn-sm" onclick="toggleChart()">Graph</button>
-      <button class="btn-sm" onclick="toggleLog()">Log</button>
-      <button class="btn-sm danger" onclick="resetGame()">Reset</button>
+  <!-- ══ SETUP ══ -->
+  <div id="setup-screen">
+    <div class="setup-header">
+      <h1>Score Keeper</h1>
+      <p>Bible Quizzing Scorekeeping</p>
+    </div>
+    <div class="rules-box">
+      <div class="rule-item"><strong>Correct:</strong> +20 each · 5th = Quiz Out<br>5 correct, no errors/fouls = Perfect (110)</div>
+      <div class="rule-item"><strong>Team Errors:</strong> All member errors + foul pairs pool together<br>1–3 free · 4–6 = −10 each · 7+ = −20 each</div>
+      <div class="rule-item"><strong>Fouls (collective):</strong> Team foul pairs → team errors<br>Individual error-out at 3 personal errors</div>
+      <div class="rule-item"><strong>Tech Fouls:</strong> −10 pts each · <strong>Captain:</strong> one per team</div>
+      <div class="rule-item"><strong>Team Bonus:</strong> +20 when 5 different quizzers answer correctly<br>+20 more at 6 · +20 more at 7</div>
+      <div class="rule-item"><strong>Score Distribution:</strong> Team pts ÷ quizzers who answered · Bonus ÷ quizzers who scored<br>Error penalty ÷ quizzers who erred (analysis mode)</div>
+    </div>
+    <div class="teams-grid">
+      <div class="team-card team-a"><h2>Team A</h2><div id="setup-a"></div></div>
+      <div class="team-card team-b"><h2>Team B</h2><div id="setup-b"></div></div>
+      <div class="team-card team-c"><h2>Team C</h2><div id="setup-c"></div></div>
+    </div>
+    <button class="start-btn" onclick="startGame()">START QUIZ</button>
+  </div>
+
+  <!-- ══ GAME ══ -->
+  <div id="game-screen">
+    <div class="game-topbar">
+      <div class="game-title">Scorekeeping</div>
+      <div class="scoreboard-totals" id="topbar-scores"></div>
+      <div class="topbar-right">
+        <span class="q-label-sm">Q</span>
+        <button class="q-btn" onclick="changeQ(-1)">−</button>
+        <span class="q-num-disp" id="q-num">1</span>
+        <button class="q-btn" onclick="changeQ(1)">+</button>
+        <button class="btn-sm" id="btn-custom" onclick="toggleCustomScore()">Breakdown</button>
+        <button class="btn-sm halftime-btn" id="btn-halftime" onclick="markHalftime()">½ Time</button>
+        <button class="btn-sm end-quiz-btn" onclick="showEndStats()">End Quiz</button>
+        <button class="btn-sm" onclick="toggleChart()">Graph</button>
+        <button class="btn-sm" onclick="toggleLog()">Log</button>
+        <button class="btn-sm" onclick="showFullscreen()" title="Fullscreen scoreboard">⛶ Show</button>
+        <button class="btn-sm" onclick="openCapModal()" title="Change captain mid-quiz">★ Cap</button>
+        <button class="btn-sm" onclick="openVerseModal()" title="Verse lookup" style="color:var(--bonus);border-color:var(--bonus)">📖 Verse</button>
+        <button class="btn-sm danger" onclick="resetGame()">Reset</button>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme" id="theme-btn">🌙</button>
+      </div>
+    </div>
+
+    <!-- Live leaderboard banner -->
+    <div id="leaderboard-banner"></div>
+
+    <!-- Halftime strip -->
+    <div id="halftime-strip">⏸ HALFTIME</div>
+
+    <div class="teams-container" id="teams-container"></div>
+
+    <div class="chart-section" id="chart-section" style="display:none">
+      <div class="chart-header">
+        <div class="chart-title">Scoring Timeline</div>
+        <div class="chart-legend" id="chart-legend"></div>
+      </div>
+      <canvas id="scoreChart"></canvas>
+    </div>
+    <div class="log-section" id="log-section" style="display:none">
+      <div class="log-title">Event Log</div>
+      <div class="log-list" id="log-list"></div>
     </div>
   </div>
-  <div class="teams-container" id="teams-container"></div>
-  <div class="chart-section" id="chart-section" style="display:none">
-    <div class="chart-header">
-      <div class="chart-title">Scoring Timeline</div>
-      <div class="chart-legend" id="chart-legend"></div>
+
+  <!-- Undo bar -->
+  <div class="undo-bar" id="undo-bar">
+    <span id="undo-msg">No actions yet</span>
+    <button class="undo-action-btn" id="undo-btn" onclick="undoLast()" disabled>UNDO</button>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ══ END-OF-QUIZ STATS MODAL ══ -->
+  <div class="modal-overlay" id="stats-modal-overlay">
+    <div class="stats-modal" id="stats-modal-content">
+      <!-- rendered by JS -->
     </div>
-    <canvas id="scoreChart"></canvas>
   </div>
-  <div class="log-section" id="log-section" style="display:none">
-    <div class="log-title">Event Log</div>
-    <div class="log-list" id="log-list"></div>
+
+  <!-- ══ FULLSCREEN SCOREBOARD ══ -->
+  <div id="fullscreen-overlay" onclick="hideFullscreen()">
+    <div class="fs-header">Bible Quizzing</div>
+    <div class="fs-teams" id="fs-teams"></div>
+    <div class="fs-q-label" id="fs-q-label"></div>
+    <div class="fs-close-hint">tap anywhere to close</div>
   </div>
-</div>
 
-<div class="undo-bar show" id="undo-bar">
-  <span id="undo-msg">No actions yet</span>
-  <button class="undo-action-btn" id="undo-btn" onclick="undoLast()" disabled>UNDO</button>
-</div>
-<div class="toast-container" id="toast-container"></div>
+  <!-- ══ CAPTAIN CHANGE MODAL ══ -->
+  <div id="cap-modal-overlay">
+    <div class="cap-modal">
+      <h3>★ Change Captain</h3>
+      <p>Click a quizzer's badge to make them captain. Only one captain per team.</p>
+      <div id="cap-modal-teams"></div>
+      <button class="cap-modal-close" onclick="closeCapModal()">Done</button>
+    </div>
+  </div>
 
+  <!-- ══ VERSE LOOKUP MODAL ══ -->
+  <div id="verse-modal-overlay">
+    <div class="verse-modal">
+      <div class="verse-modal-header">
+        <h3>📖 Verse Lookup</h3>
+        <button class="verse-modal-close-x" onclick="closeVerseModal()">✕</button>
+      </div>
+      <div class="pdf-status" id="pdf-status">
+        <div class="pdf-status-dot" id="pdf-dot"></div>
+        <span id="pdf-status-text">Loading questions.pdf…</span>
+      </div>
+      <div class="verse-search-row">
+        <input class="verse-search-input" id="verse-input"
+          placeholder="e.g. 1 Corinthians 1:2 or Romans 3"
+          onkeydown="if(event.key==='Enter')verseSearch()">
+        <button class="verse-search-btn" onclick="verseSearch()">Search</button>
+      </div>
+      <div class="verse-results" id="verse-results">
+        <div class="verse-no-results">Enter a reference above to find questions.</div>
+      </div>
+    </div>
+  </div>
 </div><!-- .app -->
+
 <script>
 // ══════════════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════════════
 const TEAM_KEYS   = ['a','b','c'];
 const TEAM_LABELS = ['A','B','C'];
-
 const CHART_COLORS = [
   '#00e5ff','#4df3ff','#00b4cc','#00d4ee','#67eaff','#009eb8','#33d8f0',
   '#ff4d6d','#ff8099','#e0003c','#ff7090','#ffaabb','#cc0033','#ff6680',
@@ -93,11 +937,22 @@ const CHART_COLORS = [
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-let state = { question:1, teams:[], events:[], undoStack:[] };
+let state = { question:1, teams:[], events:[], undoStack:[], halftime:false, halftimeQ:null };
 let undoTimer    = null;
 let chartVisible = false;
 let logVisible   = false;
 let customScore  = false;
+let currentTheme = 'dark';
+
+// ══════════════════════════════════════════════════════
+//  THEME TOGGLE
+// ══════════════════════════════════════════════════════
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('theme-btn').textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+  if (chartVisible) drawChart();
+}
 
 // ══════════════════════════════════════════════════════
 //  SETUP BUILD
@@ -144,8 +999,8 @@ function startGame() {
         name:      document.getElementById(`qn-${tk}${i}`).value.trim() || `Quizzer ${i}`,
         cap:       document.getElementById(`qc-${tk}${i}`).checked,
         stats:     { c:0, e:0, f:0, tf:0 },
-        effErrors: 0,   // personal real errors + personal foul-derived errors
-        foulDebt:  0,   // personal foul-pair conversions already counted
+        effErrors: 0,
+        foulDebt:  0,
         quizOut:   false,
         errorOut:  false,
         perfect:   false,
@@ -158,28 +1013,42 @@ function startGame() {
     };
   });
   state.question=1; state.events=[]; state.undoStack=[];
+  state.halftime=false; state.halftimeQ=null;
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('game-screen').style.display='block';
+  document.getElementById('btn-halftime').classList.remove('marked');
+  document.getElementById('halftime-strip').classList.remove('show');
   renderGame();
+}
+
+// ══════════════════════════════════════════════════════
+//  HALFTIME
+// ══════════════════════════════════════════════════════
+function markHalftime() {
+  if (state.halftime) {
+    if (!confirm('Remove halftime marker?')) return;
+    state.halftime = false; state.halftimeQ = null;
+    // Remove halftime event from log
+    state.events = state.events.filter(e => e.type !== 'halftime');
+    document.getElementById('btn-halftime').classList.remove('marked');
+    document.getElementById('halftime-strip').classList.remove('show');
+  } else {
+    state.halftime = true; state.halftimeQ = state.question;
+    state.events.push({ q: state.question, type:'halftime', txId: Date.now()+Math.random() });
+    document.getElementById('btn-halftime').classList.add('marked');
+    document.getElementById('halftime-strip').classList.add('show');
+    showToast('⏸ Halftime marked at Q' + state.question, 'bonus');
+  }
+  if (logVisible) renderLog();
 }
 
 // ══════════════════════════════════════════════════════
 //  SCORING ENGINE
 // ══════════════════════════════════════════════════════
-
-/**
- * Individual quizzer correct-answer points (before distribution adjustments).
- * Perfect (5 correct, 0 errors, 0 fouls, 0 tech fouls) = 110.
- * Otherwise = c * 20.
- */
 function quizzerCorrectPts(qz) {
   if (qz.perfect) return 110;
   return qz.stats.c * 20;
 }
-
-/**
- * Team error penalty from the shared pool (tiers: 1-3 free, 4-6 = -10, 7+ = -20).
- */
 function teamErrPenalty(pool) {
   let pen = 0;
   for (let i = 1; i <= pool; i++) {
@@ -187,16 +1056,8 @@ function teamErrPenalty(pool) {
     else if (i <= 6) pen += 10;
     else             pen += 20;
   }
-  return pen; // positive number, will be subtracted
+  return pen;
 }
-
-/**
- * Team total score:
- *   sum of quizzer correct pts
- *   + bonus
- *   − team error pool penalty
- *   − tech foul penalties (10 pts each, attributed to individual quizzers but deducted from team)
- */
 function getTeamScore(ti) {
   const team = state.teams[ti];
   const correctSum = team.quizzers.reduce((s,qz) => s + quizzerCorrectPts(qz), 0);
@@ -205,43 +1066,16 @@ function getTeamScore(ti) {
   const bonus      = team.bonusLevel * 20;
   return correctSum + bonus - errPen - tfPenalty;
 }
-
-/**
- * Count how many distinct quizzers on a team have at least 1 correct answer.
- */
 function distinctScorers(team) {
   return team.quizzers.filter(qz => qz.stats.c > 0).length;
 }
-
-/**
- * Custom (weighted) breakdown per quizzer.
- *
- * Points share  = quizzer's own correct pts + (their equal share of team bonus)
- *                 Bonus is divided EQUALLY among quizzers who scored at least once.
- *                 e.g. 4 quizzers with 20pts and 1 with 40pts, bonus=20 →
- *                      each scorer gets +4, so shares are 24,24,24,24,44
- *
- * Error share   = (quizzer's effErrors / team total effErrors) * team error penalty
- *
- * Tech foul penalty = quizzer's own tf * 10 (already personal)
- *
- * Net = ptsShare − errShare − tfPen
- *
- * Sum of all net values === getTeamScore(ti).
- */
 function getCustomBreakdown(ti) {
   const team = state.teams[ti];
   const errPen  = teamErrPenalty(team.teamErrPool);
   const bonus   = team.bonusLevel * 20;
-
-  // ── Points share ──────────────────────────────────────
-  // Bonus split EQUALLY among scorers (c > 0), regardless of how many corrects
   const scorerCount = team.quizzers.filter(qz => qz.stats.c > 0).length || 1;
   const bonusPerScorer = bonus / scorerCount;
-
-  // ── Error share ───────────────────────────────────────
   const totalEffErrors = team.quizzers.reduce((s,qz) => s + qz.effErrors, 0) || 1;
-
   return team.quizzers.map((qz) => {
     const ownPts    = quizzerCorrectPts(qz);
     const bonusShare = qz.stats.c > 0 ? bonusPerScorer : 0;
@@ -259,62 +1093,208 @@ function getCustomBreakdown(ti) {
 }
 
 // ══════════════════════════════════════════════════════
+//  LEADERBOARD BANNER
+// ══════════════════════════════════════════════════════
+function updateLeaderboard() {
+  const scores = state.teams.map((t, ti) => ({ name: t.name, score: getTeamScore(ti), ti }));
+  scores.sort((a,b) => b.score - a.score);
+  const banner = document.getElementById('leaderboard-banner');
+  const colors = ['var(--accent-a)','var(--accent-b)','var(--accent-c)'];
+
+  if (scores[0].score === scores[1].score && scores[1].score === scores[2].score && scores[0].score === 0) {
+    banner.classList.remove('show');
+    return;
+  }
+
+  // Check for a tie at the top
+  const tied = scores[0].score === scores[1].score;
+  let html = '';
+  if (tied) {
+    html = `🤝 TIE — <span style="color:${colors[scores[0].ti]}">${esc(scores[0].name)}</span> & <span style="color:${colors[scores[1].ti]}">${esc(scores[1].name)}</span> tied at ${scores[0].score} pts`;
+  } else {
+    const lead = scores[0].score - scores[1].score;
+    html = `🏆 LEADING: <span style="color:${colors[scores[0].ti]}">${esc(scores[0].name)}</span> — ${scores[0].score} pts &nbsp;·&nbsp; +${lead} lead`;
+  }
+  banner.innerHTML = html;
+  banner.classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════
+//  END-OF-QUIZ STATS MODAL
+// ══════════════════════════════════════════════════════
+function showEndStats() {
+  const overlay = document.getElementById('stats-modal-overlay');
+  const content = document.getElementById('stats-modal-content');
+
+  const scores = state.teams.map((t, ti) => ({ t, ti, score: getTeamScore(ti) }));
+  scores.sort((a,b) => b.score - a.score);
+
+  const teamColors = ['var(--accent-a)','var(--accent-b)','var(--accent-c)'];
+  const trophies   = ['🥇','🥈','🥉'];
+  const placeClass = ['first','second','third'];
+
+  // ── Podium ──
+  let podiumHtml = '<div class="podium">';
+  scores.forEach((s, rank) => {
+    podiumHtml += `<div class="podium-place ${placeClass[rank]}">
+      <div class="podium-trophy">${trophies[rank]}</div>
+      <div class="podium-team-name" style="color:${teamColors[s.ti]}">${esc(s.t.name)}</div>
+      <div class="podium-score">${s.score}</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:2px">pts</div>
+    </div>`;
+  });
+  podiumHtml += '</div>';
+
+  // ── MVPs ──
+  const allQuizzers = state.teams.flatMap((t, ti) =>
+    t.quizzers.map((qz, qi) => ({ ...qz, teamName: t.name, ti, qi }))
+  );
+
+  const perfects    = allQuizzers.filter(q => q.perfect);
+  const quizOuts    = allQuizzers.filter(q => q.quizOut && !q.perfect);
+
+  // Compute net score for every quizzer across all teams
+  const allWithNet = state.teams.flatMap((t, ti) => {
+    const bd = getCustomBreakdown(ti);
+    return t.quizzers.map((qz, qi) => ({ ...qz, teamName: t.name, ti, qi, net: bd[qi].net }));
+  });
+
+  const topScorer    = [...allWithNet].sort((a,b) => quizzerCorrectPts(b)-quizzerCorrectPts(a))[0];
+  const highestNet   = [...allWithNet].sort((a,b) => b.net - a.net)[0];
+  const lowestNet    = [...allWithNet].sort((a,b) => a.net - b.net)[0];
+  const mostFouls    = [...allWithNet].sort((a,b) => b.stats.f - a.stats.f)[0];
+
+  function mvpCard(label, qz, stat, color='var(--text)') {
+    if (!qz) return '';
+    return `<div class="mvp-card">
+      <div class="mvp-card-label">${label}</div>
+      <div class="mvp-card-name">${esc(qz.name)}${qz.cap?' ★':''}</div>
+      <div class="mvp-card-team" style="color:${teamColors[qz.ti]}">${esc(qz.teamName)}</div>
+      <div class="mvp-card-stat" style="color:${color}">${stat}</div>
+    </div>`;
+  }
+
+  // Only show highest/lowest net if there was any scoring activity
+  const anyActivity = allWithNet.some(q => q.stats.c > 0 || q.effErrors > 0);
+
+  let mvpHtml = `<div class="mvp-section">
+    <div class="mvp-section-title">🏅 Notable Performances</div>
+    <div class="mvp-grid">
+      ${mvpCard('Top Scorer', topScorer, quizzerCorrectPts(topScorer)+' pts', 'var(--correct)')}
+      ${anyActivity ? mvpCard('Highest Net', highestNet, (highestNet.net >= 0 ? '+' : '')+highestNet.net+' net', 'var(--correct)') : ''}
+      ${anyActivity ? mvpCard('Lowest Net', lowestNet, (lowestNet.net >= 0 ? '+' : '')+lowestNet.net+' net', 'var(--error)') : ''}
+      ${mostFouls.stats.f > 0 ? mvpCard('Most Fouls', mostFouls, mostFouls.stats.f+' fouls', 'var(--foul)') : ''}
+    </div>`;
+
+  if (perfects.length) {
+    mvpHtml += `<div style="margin-top:10px;padding:8px 12px;background:rgba(255,215,0,.08);border:1px solid var(--bonus);border-radius:7px;font-size:12px;color:var(--bonus);font-weight:700">
+      ⭐ PERFECT${perfects.length>1?'S':''}: ${perfects.map(q=>esc(q.name)).join(', ')}
+    </div>`;
+  }
+  if (quizOuts.length) {
+    mvpHtml += `<div style="margin-top:6px;padding:8px 12px;background:rgba(0,229,255,.06);border:1px solid var(--accent-a);border-radius:7px;font-size:12px;color:var(--accent-a);font-weight:700">
+      🎯 QUIZZED OUT: ${quizOuts.map(q=>esc(q.name)).join(', ')}
+    </div>`;
+  }
+  mvpHtml += '</div>';
+
+  // ── Per-team breakdown ──
+  let breakdownHtml = '<div class="mvp-section"><div class="mvp-section-title">📊 Full Quizzer Breakdown</div>';
+  state.teams.forEach((t, ti) => {
+    const breakdown = getCustomBreakdown(ti);
+    breakdownHtml += `<div class="team-breakdown">
+      <div class="team-breakdown-header" style="color:${teamColors[ti]}">${esc(t.name)} — ${getTeamScore(ti)} pts</div>
+      <table class="breakdown-table">
+        <thead><tr>
+          <th>Quizzer</th><th>Correct</th><th>Pts</th><th>Errors</th><th>Fouls</th><th>TF</th><th>Net</th>
+        </tr></thead><tbody>`;
+    t.quizzers.forEach((qz, qi) => {
+      const bd = breakdown[qi];
+      const net = bd.net;
+      const netCls = net > 0 ? 'hi' : net < 0 ? 'lo' : '';
+      breakdownHtml += `<tr>
+        <td style="font-weight:600">${qz.cap?'★ ':''}${esc(qz.name)}${qz.perfect?' ⭐':qz.quizOut?' 🎯':qz.errorOut?' ❌':''}</td>
+        <td class="hi">${qz.stats.c}</td>
+        <td>${quizzerCorrectPts(qz)}</td>
+        <td class="${qz.effErrors>0?'lo':''}">${qz.effErrors}</td>
+        <td class="${qz.stats.f>0?'lo':''}">${qz.stats.f}</td>
+        <td class="${qz.stats.tf>0?'lo':''}">${qz.stats.tf}</td>
+        <td class="${netCls}" style="font-weight:700">${bd.net}</td>
+      </tr>`;
+    });
+    breakdownHtml += `</tbody></table></div>`;
+  });
+  breakdownHtml += '</div>';
+
+  // ── Questions played ──
+  const totalQ = state.question - 1;
+  const halfNote = state.halftime ? ` · Halftime at Q${state.halftimeQ}` : '';
+
+  content.innerHTML = `
+    <div class="stats-modal-header">
+      <h2>🏁 Quiz Complete</h2>
+      <p>${totalQ} question${totalQ!==1?'s':''} played${halfNote}</p>
+    </div>
+    ${podiumHtml}
+    ${mvpHtml}
+    ${breakdownHtml}
+    <button class="close-modal-btn" onclick="closeEndStats()">Close</button>
+  `;
+
+  overlay.classList.add('show');
+}
+
+function closeEndStats() {
+  document.getElementById('stats-modal-overlay').classList.remove('show');
+}
+
+// Close on backdrop click
+document.getElementById('stats-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeEndStats();
+});
+
+// ══════════════════════════════════════════════════════
 //  RECORD EVENT
 // ══════════════════════════════════════════════════════
 function recordEvent(ti, qi, type) {
   const team = state.teams[ti];
   const qz   = team.quizzers[qi];
 
-  // Allow error on a quizzed-out (possibly perfect) quizzer, but block scoring again
   if (type === 'c' && (qz.quizOut || qz.perfect || qz.errorOut)) return;
   if (type === 'e' && qz.errorOut) return;
 
-  // Snapshot for undo
   state.undoStack.push({ teams: JSON.parse(JSON.stringify(state.teams)), question: state.question });
 
   qz.stats[type]++;
 
-  // ── Foul logic ──────────────────────────────────────
   if (type === 'f') {
-    // Personal foul → personal error tracking
     const personalExpected = Math.floor(qz.stats.f / 2);
     if (personalExpected > qz.foulDebt) {
-      const added = personalExpected - qz.foulDebt;
-      qz.effErrors += added;
+      qz.effErrors += personalExpected - qz.foulDebt;
       qz.foulDebt   = personalExpected;
     }
-    // Team-wide foul pool: sum all foul-pairs across entire team
     const totalTeamFouls = team.quizzers.reduce((s,q) => s+q.stats.f, 0);
     const teamFoulPairs  = Math.floor(totalTeamFouls / 2);
     if (teamFoulPairs > team.teamFoulDebt) {
-      const added = teamFoulPairs - team.teamFoulDebt;
-      team.teamErrPool  += added;
+      team.teamErrPool  += teamFoulPairs - team.teamFoulDebt;
       team.teamFoulDebt  = teamFoulPairs;
     }
   }
 
-  // ── Error logic ─────────────────────────────────────
   if (type === 'e') {
     qz.effErrors++;
     team.teamErrPool++;
-
-    // ── If this quizzer was perfect, they lose the perfect bonus ──
     if (qz.perfect) {
       qz.perfect = false;
-      // quizOut stays true — they're still quizzed out, just no longer perfect
       showToast(`${qz.name} — Perfect bonus lost (now 100 pts)`, 'errout');
     }
   }
 
-  // ── Individual error-out ────────────────────────────
   if (!qz.errorOut && qz.effErrors >= 3) {
     qz.errorOut = true;
     showToast(`${qz.name} — ERRORED OUT`, 'errout');
   }
 
-  // ── Quiz-out / perfect ──────────────────────────────
-  // Perfect = 5 corrects, 0 errors, 0 tech fouls → 110 pts
-  // Fouls alone do NOT disqualify perfect (a single foul has no scoring effect)
   if (!qz.quizOut && !qz.perfect && qz.stats.c >= 5) {
     if (qz.stats.e === 0 && qz.stats.tf === 0) {
       qz.perfect = true; qz.quizOut = true;
@@ -325,11 +1305,9 @@ function recordEvent(ti, qi, type) {
     }
   }
 
-  // ── Log main event ──────────────────────────────────
   const txId = Date.now() + Math.random();
   state.events.push({ q: state.question, team: ti, quizzerIdx: qi, type, ptsAfter: quizzerCorrectPts(qz), txId });
 
-  // ── Team bonus (distinct scorers) ───────────────────
   if (type === 'c') {
     const scorers  = distinctScorers(team);
     const newBonus = scorers >= 7 ? 3 : scorers >= 6 ? 2 : scorers >= 5 ? 1 : 0;
@@ -342,7 +1320,6 @@ function recordEvent(ti, qi, type) {
     }
   }
 
-  // Auto-advance question on correct or error
   if (type==='c' || type==='e') state.question++;
 
   renderGame();
@@ -367,7 +1344,7 @@ function undoLast() {
   if (state.undoStack.length) {
     const lastEv = state.events[state.events.length - 1];
     if (lastEv) {
-      const qz = state.teams[lastEv.team].quizzers[lastEv.quizzerIdx];
+      const qz = state.teams[lastEv.team]?.quizzers[lastEv.quizzerIdx];
       showUndo(`${qz ? qz.name : ''} — ${typeLabel(lastEv.type)}`);
     } else {
       showUndo('Action undone');
@@ -391,30 +1368,28 @@ function toggleCustomScore() {
   renderGame();
 }
 
-// ══════════════════════════════════════════════════════
-//  RENDER
-// ══════════════════════════════════════════════════════
-function renderGame() {
-  document.getElementById('q-num').textContent = state.question;
-  renderTopbar();
-  renderAllPanels();
-  if (chartVisible) drawChart();
-  if (logVisible)   renderLog();
-}
+// renderGame is defined later (after fullscreen/cap functions) — stub removed
 
 function renderTopbar() {
   const el = document.getElementById('topbar-scores');
+  const teamColors = ['total-a','total-b','total-c'];
   let html = '';
   state.teams.forEach((t, ti) => {
     if (ti > 0) html += `<div class="vs-text">·</div>`;
-    const cls   = ['total-a','total-b','total-c'][ti];
-    const score = getTeamScore(ti);
     html += `<div class="total-block">
       <div class="t-name">${esc(t.name)}</div>
-      <div class="t-score ${cls}">${score}</div>
+      <div class="t-score ${teamColors[ti]}">${getTeamScore(ti)}</div>
     </div>`;
   });
   el.innerHTML = html;
+}
+
+function getRanks() {
+  const scores = state.teams.map((t, ti) => ({ ti, score: getTeamScore(ti) }));
+  scores.sort((a,b) => b.score - a.score);
+  const ranks = new Array(state.teams.length);
+  scores.forEach((s, rank) => { ranks[s.ti] = rank + 1; });
+  return ranks;
 }
 
 function renderAllPanels() {
@@ -434,13 +1409,15 @@ function renderAllPanels() {
 function renderPanel(ti) {
   const team  = state.teams[ti];
   const panel = document.getElementById(`panel-${ti}`);
-
   const score           = getTeamScore(ti);
   const customBreakdown = customScore ? getCustomBreakdown(ti) : null;
   const customLabel     = customScore ? `<div class="panel-custom-score">weighted spread</div>` : '';
   const scorers         = distinctScorers(team);
+  const ranks           = getRanks();
+  const rank            = ranks[ti];
+  const trophies        = ['🥇','🥈','🥉'];
+  const rankClasses     = ['rank-1','rank-2','rank-3'];
 
-  // Team error pool pips
   const pool = team.teamErrPool;
   let pipHtml = '<div class="err-pool-pips">';
   const showPips = Math.max(pool, 6);
@@ -455,12 +1432,7 @@ function renderPanel(ti) {
   const penLabel  = pool > 3 ? ` (−${errPen} pts)` : pool > 0 ? ' (free)' : '';
   const poolLabel = `<span class="err-pool-label">Team errors: ${pool}${penLabel}</span>`;
 
-  // Bonus strip
-  const bonusThresholds = [
-    { n:5, label:'5-Q Bonus' },
-    { n:6, label:'6-Q Bonus' },
-    { n:7, label:'7-Q Bonus' },
-  ];
+  const bonusThresholds = [{n:5,label:'5-Q'},{n:6,label:'6-Q'},{n:7,label:'7-Q'}];
   let bonusHtml = '<div class="bonus-strip"><span style="font-size:9px;color:var(--text-dim)">Bonus:</span>';
   bonusThresholds.forEach((b) => {
     const earned = scorers >= b.n;
@@ -468,17 +1440,19 @@ function renderPanel(ti) {
   });
   bonusHtml += '</div>';
 
-  // Table headers — show extra columns only in custom mode
   const customHeaders = customScore
     ? `<th title="Correct pts + bonus share">Pts</th>
        <th title="Error penalty share">Err −</th>
-       <th title="Net score (pts − errors − tech fouls)">Net</th>`
+       <th title="Net score">Net</th>`
     : `<th title="Correct points">Pts</th>`;
 
   let html = `<div class="panel-header">
-    <div class="panel-name">${esc(team.name)}</div>
-    <div class="panel-coach">Coach: ${esc(team.coach)}</div>
-    <div class="panel-score-block">
+    <div class="panel-rank ${rankClasses[rank-1]}">${trophies[rank-1]}</div>
+    <div>
+      <div class="panel-name">${esc(team.name)}</div>
+      <div class="panel-coach">Coach: ${esc(team.coach)}</div>
+    </div>
+    <div class="panel-score-block" style="margin-left:auto">
       <div class="panel-team-score">${score} pts</div>
       ${customLabel}
     </div>
@@ -510,17 +1484,13 @@ function renderPanel(ti) {
 
     const foulPips  = buildFoulPips(qz.stats.f);
     const errDetail = qz.foulDebt > 0
-      ? `<div class="err-detail">${qz.stats.e}r+${qz.foulDebt}f</div>`
-      : '';
+      ? `<div class="err-detail">${qz.stats.e}r+${qz.foulDebt}f</div>` : '';
 
-    // Build data cells depending on mode
     let dataCells;
     if (customScore && customBreakdown) {
       const bd = customBreakdown[qi];
       const ptsDisplay = bd.ptsShare > 0 ? bd.ptsShare : '—';
-      const errDisplay = bd.errShare > 0
-        ? `−${bd.errShare}`
-        : (bd.tfPen > 0 ? `−${bd.tfPen}` : '—');
+      const errDisplay = bd.errShare > 0 ? `−${bd.errShare}` : (bd.tfPen > 0 ? `−${bd.tfPen}` : '—');
       const netCls = bd.net > 0 ? 'cpts' : bd.net < 0 ? 'errors' : '';
       dataCells = `
         <td><span class="stat-cell cpts">${ptsDisplay}</span></td>
@@ -542,10 +1512,10 @@ function renderPanel(ti) {
       <td><span class="stat-cell tfouls">${qz.stats.tf}</span></td>
       ${dataCells}
       <td><div class="action-btns">
-        <button class="act-btn c"  ${canScore?'':'disabled'} onclick="recordEvent(${ti},${qi},'c')">✓ Correct</button>
-        <button class="act-btn e"  ${canErr  ?'':'disabled'} onclick="recordEvent(${ti},${qi},'e')">✗ Error</button>
+        <button class="act-btn c"  ${canScore?'':'disabled'} onclick="recordEvent(${ti},${qi},'c')">✓</button>
+        <button class="act-btn e"  ${canErr  ?'':'disabled'} onclick="recordEvent(${ti},${qi},'e')">✗</button>
         <button class="act-btn f"  onclick="recordEvent(${ti},${qi},'f')">Foul</button>
-        <button class="act-btn tf" onclick="recordEvent(${ti},${qi},'tf')">T.Foul</button>
+        <button class="act-btn tf" onclick="recordEvent(${ti},${qi},'tf')">TF</button>
       </div></td>
     </tr>`;
   });
@@ -582,11 +1552,18 @@ function drawChart() {
   canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   ctx.scale(devicePixelRatio, devicePixelRatio);
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#12151c'; ctx.fillRect(0,0,W,H);
 
-  const evs = state.events.filter(e=>e.type!=='bonus');
+  const isDark = currentTheme === 'dark';
+  const bgColor   = isDark ? '#12151c' : '#f8f9fc';
+  const gridColor = isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)';
+  const zeroColor = isDark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.15)';
+  const labelColor = isDark ? '#6b7583' : '#8a92a3';
+
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bgColor; ctx.fillRect(0,0,W,H);
+
+  const evs = state.events.filter(e=>e.type!=='bonus'&&e.type!=='halftime');
   if (!evs.length) {
-    ctx.fillStyle='#6b7583'; ctx.font='13px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=labelColor; ctx.font='13px IBM Plex Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('No events yet — start scoring!',W/2,H/2); return;
   }
 
@@ -598,11 +1575,9 @@ function drawChart() {
   state.teams.forEach((team,ti) => {
     const pts=[{q:0,score:0}];
     for (let q=1;q<=maxQ;q++) {
-      const snap = replayScore(ti, q);
-      pts.push({q,score:snap});
+      pts.push({q,score:replayScore(ti, q)});
     }
     series.push({name:team.name,points:pts,color:['#00e5ff','#ff4d6d','#c084fc'][ti],lineWidth:2.5});
-
     team.quizzers.forEach((qz,qi) => {
       const ci = ti*7+qi;
       const qpts=[{q:0,score:0}];
@@ -621,12 +1596,22 @@ function drawChart() {
   const xOf=q=>PAD.left+(q/maxQ)*plotW;
   const yOf=s=>PAD.top+plotH-((s-minS)/rng)*plotH;
 
-  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+  ctx.strokeStyle=gridColor; ctx.lineWidth=1;
   for (let i=0;i<=4;i++){const y=PAD.top+(i/4)*plotH;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+plotW,y);ctx.stroke();}
-  ctx.strokeStyle='rgba(255,255,255,.12)';
+  ctx.strokeStyle=zeroColor;
   ctx.beginPath();ctx.moveTo(PAD.left,yOf(0));ctx.lineTo(PAD.left+plotW,yOf(0));ctx.stroke();
 
-  ctx.fillStyle='#6b7583';ctx.font='9px IBM Plex Mono,monospace';ctx.textAlign='right';
+  // Halftime line
+  if (state.halftime && state.halftimeQ) {
+    const hx = xOf(state.halftimeQ);
+    ctx.strokeStyle='rgba(245,158,11,.6)'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(hx,PAD.top); ctx.lineTo(hx,PAD.top+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(245,158,11,.9)'; ctx.font='9px IBM Plex Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('½',hx,PAD.top+8);
+  }
+
+  ctx.fillStyle=labelColor;ctx.font='9px IBM Plex Mono,monospace';ctx.textAlign='right';
   for(let i=0;i<=4;i++){const val=minS+(rng*(4-i)/4);ctx.fillText(Math.round(val),PAD.left-4,PAD.top+(i/4)*plotH+3);}
   ctx.textAlign='center';
   const step=Math.max(1,Math.floor(maxQ/8));
@@ -645,12 +1630,11 @@ function drawChart() {
     <div class="legend-item">
       <div class="legend-dot" style="background:${['#00e5ff','#ff4d6d','#c084fc'][ti]}"></div>
       <span style="font-weight:600">${esc(t.name)}</span>
-    </div>`).join('') + `<div class="legend-item" style="opacity:.5"><div class="legend-dot" style="border:1px dashed #666;background:transparent"></div><span>individual quizzers (dashed)</span></div>`;
+    </div>`).join('') + `<div class="legend-item" style="opacity:.5"><div class="legend-dot" style="border:1px dashed #888;background:transparent"></div><span>individual (dashed)</span></div>`;
 }
 
 function replayScore(ti, upToQ) {
   const team = state.teams[ti];
-  const evs  = state.events.filter(e=>e.type!=='bonus');
   let score = 0;
   team.quizzers.forEach((qz,qi) => {
     const c = state.events.filter(e=>e.team===ti&&e.quizzerIdx===qi&&e.q<=upToQ&&e.type==='c').length;
@@ -674,11 +1658,18 @@ function toggleLog() {
 
 function renderLog() {
   const list = document.getElementById('log-list');
-  if (!state.events.length) {
+  const relevant = state.events.filter(e=>e.type!=='halftime');
+  if (!relevant.length && !state.halftime) {
     list.innerHTML='<div class="log-entry"><span style="color:var(--text-dim)">No events yet.</span></div>';
     return;
   }
-  list.innerHTML = [...state.events].reverse().map(e => {
+
+  // Interleave halftime marker
+  const allEvents = [...state.events].reverse();
+  list.innerHTML = allEvents.map(e => {
+    if (e.type === 'halftime') {
+      return `<div class="log-halftime">⏸ Halftime — Q${e.q}</div>`;
+    }
     const team = state.teams[e.team];
     if (e.type==='bonus') return `<div class="log-entry bonus">
       <span class="log-q">Q${e.q}</span>
@@ -705,7 +1696,6 @@ function showToast(msg, cls='') {
   d.className=`toast ${cls}`; d.textContent=msg; c.appendChild(d);
   setTimeout(()=>d.remove(),3200);
 }
-
 function showUndo(msg) {
   document.getElementById('undo-msg').textContent = msg;
   document.getElementById('undo-btn').disabled = false;
@@ -715,7 +1705,6 @@ function hideUndo() {
   document.getElementById('undo-msg').textContent = 'No actions yet';
   document.getElementById('undo-btn').disabled = true;
 }
-
 function resetGame() {
   if (!confirm('Reset all scores and return to Q1?')) return;
   state.teams.forEach(t=>{
@@ -723,12 +1712,300 @@ function resetGame() {
     t.teamErrPool=0; t.teamFoulDebt=0; t.bonusLevel=0;
   });
   state.events=[]; state.undoStack=[]; state.question=1;
+  state.halftime=false; state.halftimeQ=null;
+  document.getElementById('btn-halftime').classList.remove('marked');
+  document.getElementById('halftime-strip').classList.remove('show');
   renderGame();
 }
-
-function typeLabel(t){return{c:'Correct',e:'Error',f:'Foul',tf:'Tech Foul',bonus:'Bonus'}[t]||t;}
+function typeLabel(t){return{c:'Correct',e:'Error',f:'Foul',tf:'Tech Foul',bonus:'Bonus',halftime:'Halftime'}[t]||t;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 window.addEventListener('resize',()=>{if(chartVisible)drawChart();});
+
+// ══════════════════════════════════════════════════════
+//  FULLSCREEN SCOREBOARD
+// ══════════════════════════════════════════════════════
+function showFullscreen() {
+  const overlay = document.getElementById('fullscreen-overlay');
+  const teamColors = ['fs-team-a','fs-team-b','fs-team-c'];
+  const teamsEl = document.getElementById('fs-teams');
+
+  let html = '';
+  state.teams.forEach((t, ti) => {
+    const score  = getTeamScore(ti);
+    const errors = t.teamErrPool;
+    if (ti > 0) html += `<div class="fs-divider">·</div>`;
+    html += `<div class="fs-team ${teamColors[ti]}">
+      <div class="fs-team-name">${esc(t.name)}</div>
+      <div class="fs-score">${score}</div>
+      <div class="fs-errors">
+        <span class="fs-errors-label">ERR</span>${errors}
+      </div>
+    </div>`;
+  });
+  teamsEl.innerHTML = html;
+  document.getElementById('fs-q-label').textContent = `Question ${state.question}`;
+  overlay.classList.add('show');
+}
+
+function hideFullscreen() {
+  document.getElementById('fullscreen-overlay').classList.remove('show');
+}
+
+// renderGame — fullscreen stays in sync if open
+function renderGame() {
+  document.getElementById('q-num').textContent = state.question;
+  renderTopbar();
+  updateLeaderboard();
+  renderAllPanels();
+  if (chartVisible) drawChart();
+  if (logVisible)   renderLog();
+  // If fullscreen is open, keep it updated
+  if (document.getElementById('fullscreen-overlay').classList.contains('show')) {
+    showFullscreen();
+  }
+}
+
+// Keyboard shortcut: Escape to close fullscreen
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    hideFullscreen();
+    closeCapModal();
+    closeEndStats();
+  }
+});
+
+// ══════════════════════════════════════════════════════
+//  CAPTAIN CHANGE (MID-QUIZ)
+// ══════════════════════════════════════════════════════
+function openCapModal() {
+  renderCapModal();
+  document.getElementById('cap-modal-overlay').classList.add('show');
+}
+
+function closeCapModal() {
+  document.getElementById('cap-modal-overlay').classList.remove('show');
+}
+
+function renderCapModal() {
+  const teamColors = ['var(--accent-a)','var(--accent-b)','var(--accent-c)'];
+  const container  = document.getElementById('cap-modal-teams');
+  let html = '';
+  state.teams.forEach((t, ti) => {
+    html += `<div class="cap-team-section">
+      <div class="cap-team-label" style="color:${teamColors[ti]}">${esc(t.name)}</div>`;
+    t.quizzers.forEach((qz, qi) => {
+      html += `<div class="cap-quizzer-row ${qz.cap?'is-cap':''}" onclick="setCaptain(${ti},${qi})">
+        <span class="cap-qname">${esc(qz.name)}</span>
+        <span class="cap-badge-live ${qz.cap?'active':''}">★ CAP</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function setCaptain(ti, qi) {
+  const team = state.teams[ti];
+  const alreadyCap = team.quizzers[qi].cap;
+  team.quizzers.forEach(qz => { qz.cap = false; });
+  if (!alreadyCap) team.quizzers[qi].cap = true;
+  renderCapModal();
+  renderGame();
+  showToast(`★ ${team.quizzers[qi].cap ? team.quizzers[qi].name + ' is now captain' : 'Captain removed'}`, 'bonus');
+}
+
+// ══════════════════════════════════════════════════════
+//  VERSE LOOKUP
+// ══════════════════════════════════════════════════════
+let verseDB       = [];   // [{ref, question, answer}]
+let pdfLoaded     = false;
+let pdfLoading    = false;
+let jumpSelections = {};  // cardId → selectedWordIndex
+
+function openVerseModal() {
+  document.getElementById('verse-modal-overlay').classList.add('show');
+  if (!pdfLoaded && !pdfLoading) loadQuestionsPDF();
+}
+function closeVerseModal() {
+  document.getElementById('verse-modal-overlay').classList.remove('show');
+}
+document.getElementById('verse-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeVerseModal();
+});
+
+// ── Load & parse PDF ─────────────────────────────────
+async function loadQuestionsPDF() {
+  pdfLoading = true;
+  setPDFStatus('loading', 'Loading questions.pdf…');
+  try {
+    if (typeof pdfjsLib === 'undefined') {
+      setPDFStatus('err', 'PDF.js failed to load. Check your internet connection.');
+      return;
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const pdf = await pdfjsLib.getDocument('questions.pdf').promise;
+    let fullText = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc   = await page.getTextContent();
+      fullText += tc.items.map(i => i.str).join(' ') + ' ';
+    }
+    verseDB = parseQuestions(fullText);
+    pdfLoaded = true;
+    pdfLoading = false;
+    setPDFStatus('ok', `${verseDB.length} questions loaded from questions.pdf`);
+  } catch (err) {
+    pdfLoading = false;
+    setPDFStatus('err', `Could not load questions.pdf — make sure it's in the same folder. (${err.message})`);
+  }
+}
+
+function setPDFStatus(state, msg) {
+  document.getElementById('pdf-dot').className = 'pdf-status-dot ' + state;
+  document.getElementById('pdf-status-text').textContent = msg;
+}
+
+// ── Parse question stream ─────────────────────────────
+// Format: [Reference] [Question?] [Answer] [Reference] ...
+function parseQuestions(text) {
+  // Regex that matches Bible verse references like:
+  // "1 Corinthians 1:2", "Romans 3:23", "Song of Solomon 1:1", "Revelation 22:21"
+  const REF_RE = /\b((?:1|2|3)\s)?([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\s(\d{1,3}):(\d{1,3})\b/g;
+
+  // Find all reference positions
+  const refs = [];
+  let m;
+  while ((m = REF_RE.exec(text)) !== null) {
+    refs.push({ index: m.index, ref: m[0].trim() });
+  }
+
+  if (!refs.length) return [];
+
+  const results = [];
+  for (let i = 0; i < refs.length; i++) {
+    const start   = refs[i].index + refs[i].ref.length;
+    const end     = i + 1 < refs.length ? refs[i + 1].index : text.length;
+    const chunk   = text.slice(start, end).trim();
+    // Split on the first '?' to separate question from answer
+    const qMark   = chunk.indexOf('?');
+    if (qMark === -1) continue;
+    const question = chunk.slice(0, qMark + 1).trim();
+    const answer   = chunk.slice(qMark + 1).trim()
+      // trim trailing text that looks like the start of the next reference already caught
+      .replace(/\s+[A-Z].*$/, '').trim();
+    if (question.length < 3) continue;
+    results.push({ ref: refs[i].ref, question, answer });
+  }
+  return results;
+}
+
+// ── Search ────────────────────────────────────────────
+function verseSearch() {
+  const raw     = document.getElementById('verse-input').value.trim();
+  const results = document.getElementById('verse-results');
+  if (!raw) {
+    results.innerHTML = '<div class="verse-no-results">Enter a reference above to find questions.</div>';
+    return;
+  }
+  if (!pdfLoaded) {
+    results.innerHTML = '<div class="verse-no-results">Still loading questions.pdf — please wait.</div>';
+    return;
+  }
+  if (!verseDB.length) {
+    results.innerHTML = '<div class="verse-no-results">No questions were parsed from the PDF. Check the file format.</div>';
+    return;
+  }
+
+  // Normalize query: lowercase, collapse whitespace
+  const q = raw.toLowerCase().replace(/\s+/g, ' ');
+
+  // Try to match book + chapter:verse  OR  book + chapter only
+  const matches = verseDB.filter(entry => {
+    const r = entry.ref.toLowerCase();
+    return r.includes(q) || q.includes(r) || fuzzyRefMatch(q, r);
+  });
+
+  jumpSelections = {};
+
+  if (!matches.length) {
+    results.innerHTML = `<div class="verse-no-results">No questions found for "<strong>${esc(raw)}</strong>".<br>Try the full reference, e.g. "1 Corinthians 1:2".</div>`;
+    return;
+  }
+
+  results.innerHTML = matches.map((entry, idx) => buildQuestionCard(entry, idx)).join('');
+}
+
+// Fuzzy: allow partial book abbreviation + chapter:verse
+function fuzzyRefMatch(query, ref) {
+  // e.g. query = "1 cor 1:2", ref = "1 corinthians 1:2"
+  const qParts = query.split(/\s+/);
+  const rParts = ref.split(/\s+/);
+  // last part of both should be chapter:verse
+  if (qParts[qParts.length-1] !== rParts[rParts.length-1]) return false;
+  // book portion: query book start should match ref book start
+  const qBook = qParts.slice(0, -1).join(' ');
+  const rBook = rParts.slice(0, -1).join(' ');
+  return rBook.startsWith(qBook) || qBook.startsWith(rBook);
+}
+
+// ── Build question card HTML ─────────────────────────
+function buildQuestionCard(entry, idx) {
+  const cardId = `qcard-${idx}`;
+  const words  = entry.question.split(/\s+/);
+  const wordBtns = words.map((w, wi) =>
+    `<button class="word-btn" id="${cardId}-w${wi}"
+      onclick="selectWord('${cardId}',${wi},${words.length})">${esc(w)}</button>`
+  ).join('');
+
+  return `<div class="verse-q-card" id="${cardId}">
+    <div class="verse-q-ref">${esc(entry.ref)}</div>
+    <div class="word-buttons">${wordBtns}</div>
+    <div class="jump-counter" id="${cardId}-counter">
+      <span class="jump-count-badge" id="${cardId}-badge">tap a word to mark jump</span>
+      <button class="jump-reset-btn" onclick="resetJump('${cardId}',${words.length})" style="display:none" id="${cardId}-reset">Clear</button>
+    </div>
+    <div class="verse-q-answer">
+      <strong>Answer</strong>${esc(entry.answer)}
+    </div>
+  </div>`;
+}
+
+// ── Word selection ────────────────────────────────────
+function selectWord(cardId, wordIdx, totalWords) {
+  jumpSelections[cardId] = wordIdx;
+
+  // Update button highlights
+  for (let i = 0; i < totalWords; i++) {
+    const btn = document.getElementById(`${cardId}-w${i}`);
+    if (!btn) continue;
+    if (i < wordIdx)       { btn.className = 'word-btn lit'; }
+    else if (i === wordIdx){ btn.className = 'word-btn selected'; }
+    else                   { btn.className = 'word-btn'; }
+  }
+
+  // Update counter badge
+  const badge = document.getElementById(`${cardId}-badge`);
+  const reset = document.getElementById(`${cardId}-reset`);
+  const count = wordIdx + 1;
+  badge.className = 'jump-count-badge has-count';
+  badge.textContent = `${count} word${count !== 1 ? 's' : ''} into question`;
+  if (reset) reset.style.display = '';
+}
+
+function resetJump(cardId, totalWords) {
+  delete jumpSelections[cardId];
+  for (let i = 0; i < totalWords; i++) {
+    const btn = document.getElementById(`${cardId}-w${i}`);
+    if (btn) btn.className = 'word-btn';
+  }
+  const badge = document.getElementById(`${cardId}-badge`);
+  const reset = document.getElementById(`${cardId}-reset`);
+  badge.className = 'jump-count-badge';
+  badge.textContent = 'tap a word to mark jump';
+  if (reset) reset.style.display = 'none';
+}
 </script>
 </body>
 </html>
