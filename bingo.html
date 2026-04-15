@@ -1,0 +1,134 @@
+<!--
+CHALLENGE 4 (from claude)
+make more cards that when clicked flip over smoothly
+-->
+
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="GCCHub.css">
+	<link rel="icon" type="image/png" href="favicon.png">
+		<title> GCC Bingo </title>
+		<style>
+		body{
+			background-color: grey;
+		}
+			#cardContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+    padding: 12px;
+    max-width: 100%;
+    justify-items: center;
+}
+
+		.card {
+				width: 125px;
+				height: 125px;
+				transition: transform 0.6s;
+				position: relative;
+				overflow: hidden;
+
+				border: 2px solid #333;   /* OUTLINE */
+				border-radius: 8px;       /* optional but looks nicer */
+				background-color: white;
+			}
+
+			.card.flipped {
+				transform: rotateZ(360deg);
+				border: 2px solid gold;
+				box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+			}
+
+			.card img {
+				max-width: 100%;
+				max-height: 100%;
+				transition: transform 0.6s;
+			}
+
+			
+			#cardContainer {
+				max-width: 100%;
+				
+			}
+			
+			.name {
+				position: absolute;
+				bottom: 5px;            /* change to top: 5px; if you want top instead */
+				left: 5px;
+
+				font-size: 14px;
+				color: black;
+
+				/* white outline */
+				text-shadow:
+					-1px -1px 0 white,
+					 1px -1px 0 white,
+					-1px  1px 0 white,
+					 1px  1px 0 white;
+
+				margin: 0;
+				padding: 2px 4px;
+			}
+		</style>
+	</head>
+	<body>
+	    <nav>
+        <a href="index.html">Home</a>
+        <a href="trivia.html">GCC Trivia</a>
+		<a href="scoreKeeper.html">Score Keeper</a>
+		<a href="bingo.html">2026 Nats Bingo</a>
+        <a href="https://smashcardsservice.github.io/Bible_Quizzing/" target="_blank">Quizzing Game</a>
+		
+    </nav>
+		<h1>Nationals 2026 Bingo </h1>
+		<h2>Tap a picture after you meet that person! </h2>
+		<h3>Programmed by Levi Der</h3>
+		<div class="boxes" id="cardContainer">
+		</div>
+		
+		<script>
+			const container = document.getElementById('cardContainer');
+			let cardStates = [false, false, false]; // Track if each card is flipped
+			let names = ["Evelette Berg","T Serig","Nora Miller","Caitlyn Hepfler","Abby Miller","Nathaniel Der","Toby Garrett","Logan Smith","Xander Brown","Eden Shepp","Emi Muramatsu","Kaylin Kastman","McKinley Jackson"
+			,"Levi Der","Jack Wicklund","Sam Kastman","Merritt Roelfs","Elizabeth Roggow","Jacob Place","Aryll Brown","Micah DeCaro","Rannie Garrett","Lydia Ward","Ryder Iantorno","Henry Jones","Oliver Lohrenz","Nathan Rosen",
+			"Esther Jones","Kate Wicklund","Soph Miller","Dominic Ruiz","Ellie WIldrick","Ava Aubrey","Arioch Osebreh","Jubilee Yeager","Ashley Wantz","Hannah Wildrick","Evelynn Love","Nathan Fees","Matther Roelfs","Carter Kastman","Jonathan Harris",
+			"Hunter Herr", "Jake Miles", "Nathaniel Nolan","Hudson Der"];
+			const OPACITY = 0.3;
+			// Loop to create 3 cards
+			for (let i = 1; i < 47; i++) {
+				// Create a new div for each card
+				let card = document.createElement('div');
+				card.className = 'card';
+				card.style.opacity = OPACITY;
+				card.style.backgroundColor = "white";
+				card.innerHTML = "<h3 class='name'>" + names[i-1] + "</h3><img src='images/"+ i + ".png' alt='Card'>";
+				card.classList.toggle('flipped');
+				card.classList.toggle('flipped');
+				cardStates[i] = !cardStates[i]; 
+				// Add click function
+				card.onclick = function() {
+					card.classList.toggle('flipped');
+					cardStates[i] = !cardStates[i]; // Toggle this card's state
+					
+					setTimeout(function() {
+						if (cardStates[i]) {
+							card.style.backgroundColor = "white";
+							card.style.opacity = OPACITY;
+					//		card.innerHTML = "<img src='images/"+ i + ".png' alt='Card'>";
+						} else {
+							card.style.backgroundColor = "white";
+							card.style.opacity = "1";
+					//		card.innerHTML = "<img src='images/"+ i + ".png' alt='Card'>";
+						}
+					}, 200);
+				};
+				
+				// Add card to the page
+				container.appendChild(card);
+			}
+		</script>
+	</body>
+</html>
